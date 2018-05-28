@@ -1,14 +1,10 @@
 from multiprocessing import cpu_count
 from pathlib import Path
-from os import chdir, read, setsid, umask, write
+from os import chdir, umask
 from os.path import isfile, realpath
-from select import select
-from termios import tcgetattr, tcsetattr, TCSADRAIN
 import argparse
 import gzip
-import pty
 import re
-import tty
 import subprocess as sp
 import sys
 
@@ -17,37 +13,6 @@ OLD_KERNELS_DIR = '/root/.pezu/old-kernels'
 CONFIG_GZ = '/proc/config.gz'
 GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
-
-DISPATCH_CONF_BUFFER_SIZE = 10240
-
-
-def interactive_proc(command, timeout=2):
-    """Based on this answer: https://stackoverflow.com/a/43012138/374110"""
-    old_tty = tcgetattr(sys.stdin)
-    tty.setraw(sys.stdin.fileno())
-    master_fd, slave_fd = pty.openpty()
-
-    p = sp.Popen(command)
-    try:
-        p.wait(timeout=timeout)
-    except sp.TimeoutExpired:
-        p.kill()
-        p = sp.Popen(command,
-                     preexec_fn=setsid,
-                     stdin=slave_fd,
-                     stdout=slave_fd,
-                     stderr=slave_fd,
-                     universal_newlines=True)
-        while p.poll() is None:
-            r, w, e = select([sys.stdin, master_fd], [], [])
-            if sys.stdin in r:
-                d = read(sys.stdin.fileno(), DISPATCH_CONF_BUFFER_SIZE)
-                write(master_fd, d)
-            elif master_fd in r:
-                o = read(master_fd, DISPATCH_CONF_BUFFER_SIZE)
-                if o:
-                    write(sys.stdout.fileno(), o)
-    tcsetattr(sys.stdin, TCSADRAIN, old_tty)
 
 
 def esync():
@@ -71,7 +36,6 @@ def ecleans():
     sp.check_call(['eclean-dist', '--deep'])
     dirs = list(Path('/var/tmp/portage').glob('*'))
     sp.check_call(['rm', '-fR'] + dirs)
-    interactive_proc(['dispatch-conf'])
 
 
 def emerges():
