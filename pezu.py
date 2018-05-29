@@ -124,7 +124,7 @@ def rebuild_kernel(num_cpus=None, suffix=None):
 def upgrade_kernel(suffix=None, num_cpus=None):
     p = sp.Popen(['eselect',  'kernel',  'list'], stdout=sp.PIPE)
     p.wait()
-    lines = [x.decode('utf-8') for x in p.stdout.readlines()]
+    lines = [x.decode('utf-8').strip() for x in p.stdout.readlines()]
 
     found = False
     for line in lines:
@@ -134,20 +134,16 @@ def upgrade_kernel(suffix=None, num_cpus=None):
 
     if not found:
         return 1
-
-    line_count = len(
-        sp.check_output(['eselect', '--brief', 'kernel', 'list'])
-          .decode('utf-8').split('\n'))
-    if line_count > 2:
+    blines = sp.check_output(['eselect', '--brief', 'kernel', 'list'])
+    blines = list(filter(None, blines.decode('utf-8').split('\n')))
+    if len(blines) > 2:
         print('Unexpected number of lines. Not updating kernel.',
               file=sys.stderr)
         return
 
-    for line in lines:
-        line = line.strip()
-        if not line:
-            continue
-        if re.match(r'^\[[0-9]+\].*', line):
+    unselected = None
+    for line in list(filter(None, lines))[1:]:
+        if not line.endswith('*'):
             unselected = int(re.search(r'^\[([0-9]+)\]', line).groups()[0])
             break
 
