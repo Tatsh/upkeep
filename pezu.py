@@ -115,8 +115,8 @@ def rebuild_kernel(num_cpus=None, suffix=None):
         ')',
         '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'])
     sp.check_call(['make', 'install'])
-    kver_suffix = suffix if suffix else ''
-    kver_arg = '-'.join(realpath('.').split('-')[1:] + [kver_suffix])
+    kver_suffix = [suffix] if suffix else []
+    kver_arg = '-'.join(realpath('.').split('-')[1:] + kver_suffix)
     sp.check_call(['dracut', '--force', '--kver', kver_arg])
     sp.check_call(['grub2-mkconfig', '-o', GRUB_CFG])
 
