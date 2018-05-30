@@ -122,18 +122,18 @@ def rebuild_kernel(num_cpus=None, suffix=None):
 
 
 def upgrade_kernel(suffix=None, num_cpus=None):
-    p = sp.Popen(['eselect',  'kernel',  'list'], stdout=sp.PIPE)
-    p.wait()
-    lines = [x.decode('utf-8').strip() for x in p.stdout.readlines()]
-
+    lines = map(str.strip, sp.check_output(['eselect',  'kernel',  'list'])
+                             .decode('utf-8')
+                             .split('\n'))
     found = False
+
     for line in lines:
         if re.search(r'\*$', line):
             found = True
             break
-
     if not found:
         return 1
+
     blines = sp.check_output(['eselect', '--brief', 'kernel', 'list'])
     blines = list(filter(None, blines.decode('utf-8').split('\n')))
     if len(blines) > 2:
