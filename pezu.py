@@ -8,6 +8,14 @@ import re
 import subprocess as sp
 import sys
 
+__all__ = [
+    'ecleans',
+    'emerges',
+    'esync',
+    'rebuild_kernel',
+    'upgrade_kernel',
+]
+
 
 OLD_KERNELS_DIR = '/root/.pezu/old-kernels'
 CONFIG_GZ = '/proc/config.gz'
@@ -156,3 +164,25 @@ def upgrade_kernel(suffix=None, num_cpus=None):
 
     rebuild_kernel(num_cpus=num_cpus,
                    suffix=suffix)
+
+
+def kernel_command(func):
+    old_umask = umask(0o022)
+    parser = argparse.ArgumentParser(__name__)
+    parser.add_argument('-s', '--suffix')
+    parser.add_argument('-j',
+                        '--number-of-jobs',
+                        default=cpu_count() + 1,
+                        type=int)
+    args = parser.parse_args()
+
+    try:
+        func(suffix=args.suffix, num_cpus=args.number_of_jobs)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        umask(old_umask)
+
+
+upgrade_kernel_command = kernel_command(upgrade_kernel)
+rebuild_kernel_command = kernel_command(rebuild_kernel)
