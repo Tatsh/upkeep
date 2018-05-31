@@ -10,6 +10,7 @@ setup(
     license='LICENSE.txt',
     description='Portage update helper scripts.',
     long_description=open('README.md').read(),
+    py_modules=['pezu'],
     entry_points={
         'console_scripts': [
             'ecleans = pezu:ecleans',
