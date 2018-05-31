@@ -14,6 +14,8 @@ __all__ = [
     'esync',
     'rebuild_kernel',
     'upgrade_kernel',
+    'rebuild_kernel_command',
+    'upgrade_kernel_command',
 ]
 
 
