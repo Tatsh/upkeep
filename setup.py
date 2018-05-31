@@ -1,5 +1,5 @@
 """Module with Portage helper commands."""
-from distutils.core import setup
+from setuptools import setup
 
 setup(
     name='pezu',
