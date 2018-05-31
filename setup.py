@@ -16,8 +16,8 @@ setup(
             'ecleans = pezu:ecleans',
             'emerges = pezu:emerges',
             'esync = pezu:esync',
-            # 'rebuild-kernel = pezu:rebuild_kernel_command',
-            # 'upgrade-kernel = pezu:upgrade_kernel_command',
+            'rebuild-kernel = pezu:rebuild_kernel_command',
+            'upgrade-kernel = pezu:upgrade_kernel_command',
         ]
     }
 )

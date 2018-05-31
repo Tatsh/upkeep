@@ -169,21 +169,23 @@ def upgrade_kernel(suffix=None, num_cpus=None):
 
 
 def kernel_command(func):
-    old_umask = umask(0o022)
-    parser = argparse.ArgumentParser(__name__)
-    parser.add_argument('-s', '--suffix')
-    parser.add_argument('-j',
-                        '--number-of-jobs',
-                        default=cpu_count() + 1,
-                        type=int)
-    args = parser.parse_args()
+    def ret():
+        old_umask = umask(0o022)
+        parser = argparse.ArgumentParser(__name__)
+        parser.add_argument('-s', '--suffix')
+        parser.add_argument('-j',
+                            '--number-of-jobs',
+                            default=cpu_count() + 1,
+                            type=int)
+        args = parser.parse_args()
 
-    try:
-        func(suffix=args.suffix, num_cpus=args.number_of_jobs)
-    except KeyboardInterrupt:
-        pass
-    finally:
-        umask(old_umask)
+        try:
+            func(suffix=args.suffix, num_cpus=args.number_of_jobs)
+        except KeyboardInterrupt:
+            pass
+        finally:
+            umask(old_umask)
+    return ret
 
 
 upgrade_kernel_command = kernel_command(upgrade_kernel)
