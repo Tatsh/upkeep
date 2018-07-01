@@ -20,7 +20,6 @@ __all__ = [
 
 
 OLD_KERNELS_DIR = '/root/.pezu/old-kernels'
-CONFIG_GZ = '/proc/config.gz'
 GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
 
@@ -97,11 +96,6 @@ def rebuild_kernel(num_cpus=None, suffix=None):
         num_cpus = cpu_count() + 1
     chdir(KERNEL_SRC_DIR)
 
-    if not isfile('.config') and isfile(CONFIG_GZ):
-        with gzip.open(CONFIG_GZ) as z:
-            with open('.config', 'wb+') as f:
-                f.write(z.read())
-
     sp.check_call(['make', 'oldconfig'])
     sp.check_call(['make', '-j{}'.format(num_cpus)])
     sp.check_call(['make', 'modules_install'])
@@ -132,9 +126,10 @@ def rebuild_kernel(num_cpus=None, suffix=None):
 
 
 def upgrade_kernel(suffix=None, num_cpus=None):
-    lines = map(str.strip, sp.check_output(['eselect',  'kernel',  'list'])
-                             .decode('utf-8')
-                             .split('\n'))
+    lines = filter(None, map(str.strip,
+                             sp.check_output(['eselect',  'kernel',  'list'])
+                               .decode('utf-8')
+                               .split('\n')))
     found = False
 
     for line in lines:
@@ -147,20 +142,21 @@ def upgrade_kernel(suffix=None, num_cpus=None):
     blines = sp.check_output(['eselect', '--brief', 'kernel', 'list'])
     blines = list(filter(None, blines.decode('utf-8').split('\n')))
     if len(blines) > 2:
-        print('Unexpected number of lines. Not updating kernel.',
+        print(('Unexpected number of lines (eselect --brief). '
+               'Not updating kernel.'),
               file=sys.stderr)
-        return
+        return 1
 
     unselected = None
-    for line in list(filter(None, lines))[1:]:
+    for line in lines:
         if not line.endswith('*'):
-            unselected = int(re.search(r'^\[([0-9]+)\]', line).groups()[0])
+            unselected = int(re.search(r'^\[([0-9]+)\]', line).group(1))
             break
 
     if unselected not in (1, 2,):
         print('Unexpected number of lines. Not updating kernel.',
               file=sys.stderr)
-        return
+        return 1
 
     sp.check_call(['eselect', 'kernel', 'set', str(unselected)])
 
@@ -180,7 +176,7 @@ def kernel_command(func):
         args = parser.parse_args()
 
         try:
-            func(suffix=args.suffix, num_cpus=args.number_of_jobs)
+            return func(suffix=args.suffix, num_cpus=args.number_of_jobs)
         except KeyboardInterrupt:
             pass
         finally:
