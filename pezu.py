@@ -25,6 +25,10 @@ GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
 
 
+class KernelConfigError(Exception):
+    pass
+
+
 def esync():
     try:
         sp.check_call(['which', 'layman'], stdout=sp.PIPE)
@@ -56,7 +60,6 @@ def emerges():
     parser.add_argument('-P', '--no-preserved-rebuild', action='store_true')
     parser.add_argument('-D', '--no-daemon-reexec', action='store_true')
     parser.add_argument('-U', '--no-upgrade-kernel', action='store_true')
-    parser.add_argument('--kernel-suffix')
     args = parser.parse_args()
 
     live_rebuild = not args.no_live_rebuild
@@ -87,12 +90,12 @@ def emerges():
                 pass
 
         if up_kernel:
-            upgrade_kernel(suffix=args.kernel_suffix)
+            upgrade_kernel()
     finally:
         umask(old_umask)
 
 
-def rebuild_kernel(num_cpus=None, suffix=None):
+def rebuild_kernel(num_cpus=None):
     if not num_cpus:
         num_cpus = cpu_count() + 1
     chdir(KERNEL_SRC_DIR)
@@ -101,6 +104,18 @@ def rebuild_kernel(num_cpus=None, suffix=None):
         with gzip.open(CONFIG_GZ) as z:
             with open('.config', 'wb+') as f:
                 f.write(z.read())
+    if not isfile('.config'):
+        raise KernelConfigError(
+            'Will not build without a .config file present')
+
+    suffix = ''
+    with open('.config', 'r') as f:
+        for line in f.readlines():
+            if line.startswith('CONFIG_LOCALVERSION='):
+                s = line.split('=')[-1].strip()[1:-1]
+                if s:
+                    suffix = s
+                break
 
     sp.check_call(['make', 'oldconfig'])
     sp.check_call(['make', '-j{}'.format(num_cpus)])
@@ -125,13 +140,12 @@ def rebuild_kernel(num_cpus=None, suffix=None):
         ')',
         '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'])
     sp.check_call(['make', 'install'])
-    kver_suffix = [suffix] if suffix else []
-    kver_arg = '-'.join(realpath('.').split('-')[1:] + kver_suffix)
+    kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
     sp.check_call(['dracut', '--force', '--kver', kver_arg])
     sp.check_call(['grub2-mkconfig', '-o', GRUB_CFG])
 
 
-def upgrade_kernel(suffix=None, num_cpus=None):
+def upgrade_kernel(num_cpus=None):
     lines = map(str.strip, sp.check_output(['eselect',  'kernel',  'list'])
                              .decode('utf-8')
                              .split('\n'))
@@ -164,15 +178,13 @@ def upgrade_kernel(suffix=None, num_cpus=None):
 
     sp.check_call(['eselect', 'kernel', 'set', str(unselected)])
 
-    rebuild_kernel(num_cpus=num_cpus,
-                   suffix=suffix)
+    rebuild_kernel(num_cpus=num_cpus)
 
 
 def kernel_command(func):
     def ret():
         old_umask = umask(0o022)
         parser = argparse.ArgumentParser(__name__)
-        parser.add_argument('-s', '--suffix')
         parser.add_argument('-j',
                             '--number-of-jobs',
                             default=cpu_count() + 1,
@@ -180,7 +192,7 @@ def kernel_command(func):
         args = parser.parse_args()
 
         try:
-            func(suffix=args.suffix, num_cpus=args.number_of_jobs)
+            func(num_cpus=args.number_of_jobs)
         except KeyboardInterrupt:
             pass
         finally:
