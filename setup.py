@@ -2,22 +2,22 @@
 from setuptools import setup
 
 setup(
-    name='pezu',
-    version='0.0.1',
+    name='upkeep',
+    version='0.0.2',
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
-    url='https://github.com/Tatsh/pezu',
+    url='https://github.com/Tatsh/upkeep',
     license='LICENSE.txt',
     description='Portage update helper scripts.',
     long_description=open('README.md').read(),
-    py_modules=['pezu'],
+    py_modules=['upkeep'],
     entry_points={
         'console_scripts': [
-            'ecleans = pezu:ecleans',
-            'emerges = pezu:emerges',
-            'esync = pezu:esync',
-            'rebuild-kernel = pezu:rebuild_kernel_command',
-            'upgrade-kernel = pezu:upgrade_kernel_command',
+            'ecleans = upkeep:ecleans',
+            'emerges = upkeep:emerges',
+            'esync = upkeep:esync',
+            'rebuild-kernel = upkeep:rebuild_kernel_command',
+            'upgrade-kernel = upkeep:upgrade_kernel_command',
         ]
     }
 )
