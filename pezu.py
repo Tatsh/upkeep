@@ -19,6 +19,7 @@ __all__ = [
 ]
 
 
+CONFIG_GZ = '/proc/config.gz'
 OLD_KERNELS_DIR = '/root/.pezu/old-kernels'
 GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
