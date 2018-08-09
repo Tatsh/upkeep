@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='upkeep',
-    version='0.0.2',
+    version='1.0.0',
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
     url='https://github.com/Tatsh/upkeep',
