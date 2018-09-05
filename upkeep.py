@@ -38,26 +38,27 @@ def esync():
 
     if args.run_layman:
         try:
-            sp.check_call(['which', 'layman'], stdout=sp.PIPE)
-            sp.check_call(['layman', '-S'])
+            sp.run(['which', 'layman'], stdout=sp.PIPE, check=True)
+            sp.run(['layman', '-S'], check=True)
         except sp.CalledProcessError:
             pass
     try:
-        sp.check_call(['eix-sync', '-qH'])
+        sp.run(['which', 'eix-sync'], stdout=sp.PIPE, check=True)
     except sp.CalledProcessError as e:
         if e.returncode != 2:
             print('You need to have eix-sync installed for this to work',
                   file=sys.stderr)
         return 1
+    return sp.run(['eix-sync', '-qH']).returncode
 
 
 def ecleans():
-    sp.check_call(['emerge', '--depclean', '--quiet'])
-    sp.check_call(['emerge', '--quiet', '@preserved-rebuild'])
-    sp.check_call(['revdep-rebuild', '--quiet'])
-    sp.check_call(['eclean-dist', '--deep'])
+    sp.run(['emerge', '--depclean', '--quiet'], check=True)
+    sp.run(['emerge', '--quiet', '@preserved-rebuild'], check=True)
+    sp.run(['revdep-rebuild', '--quiet'], check=True)
+    sp.run(['eclean-dist', '--deep'], check=True)
     dirs = list(Path('/var/tmp/portage').glob('*'))
-    sp.check_call(['rm', '-fR'] + dirs)
+    return sp.run(['rm', '-fR'] + dirs).returncode
 
 
 def emerges():
@@ -77,28 +78,28 @@ def emerges():
     ask_arg = ['--ask'] if args.ask else []
 
     try:
-        sp.check_call(['emerge', '--oneshot', '--quiet', '--update',
-                       'portage'])
-        sp.check_call(['emerge', '--keep-going', '--with-bdeps=y', '--tree',
-                       '--quiet', '--update', '--deep', '--newuse',
-                       '@world'] + ask_arg)
+        sp.run(['emerge', '--oneshot', '--quiet', '--update', 'portage'],
+               check=True)
+        sp.run(['emerge', '--keep-going', '--with-bdeps=y', '--tree',
+                '--quiet', '--update', '--deep', '--newuse',
+                '@world'] + ask_arg, check=True)
 
         if live_rebuild:
-            sp.check_call(['emerge', '--keep-going', '--quiet',
-                           '@live-rebuild'])
+            sp.run(['emerge', '--keep-going', '--quiet', '@live-rebuild'],
+                   check=True)
         if preserved_rebuild:
-            sp.check_call(['emerge', '--keep-going', '--quiet',
-                           '@preserved-rebuild'])
+            sp.run(['emerge', '--keep-going', '--quiet', '@preserved-rebuild'],
+                   check=True)
 
         if daemon_reexec:
             try:
-                sp.check_call(['which', 'systemctl'])
-                sp.check_call(['systemctl', 'daemon-reexec'])
+                sp.run(['which', 'systemctl'], check=True, stdout=sp.PIPE)
+                sp.run(['systemctl', 'daemon-reexec'], check=True)
             except sp.CalledProcessError:
                 pass
 
         if up_kernel:
-            upgrade_kernel()
+            return upgrade_kernel()
     finally:
         umask(old_umask)
 
@@ -125,39 +126,37 @@ def rebuild_kernel(num_cpus=None):
                     suffix = s
                 break
 
-    sp.check_call(['make', 'oldconfig'])
-    sp.check_call(['make', '-j{}'.format(num_cpus)])
-    sp.check_call(['make', 'modules_install'])
-    sp.check_call(['emerge',
-                   '--quiet',
-                   '--keep-going',
-                   '--quiet-fail',
-                   '--verbose',
-                   '@module-rebuild',
-                   '@x11-module-rebuild'])
+    sp.run(['make', 'oldconfig'], check=True)
+    sp.run(['make', '-j{}'.format(num_cpus)], check=True)
+    sp.run(['make', 'modules_install'], check=True)
+    sp.run(['emerge',
+            '--quiet',
+            '--keep-going',
+            '--quiet-fail',
+            '--verbose',
+            '@module-rebuild',
+            '@x11-module-rebuild'], check=True)
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
-    sp.check_call([
-        'find', '/boot',
-        '-maxdepth', '1',
-        '(',
-        '-name', 'initramfs-*',
-        '-o', '-name', 'vmlinuz-*',
-        '-o', '-iname', 'System.map*',
-        '-o', '-iname', 'config-*',
-        ')',
-        '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'])
-    sp.check_call(['make', 'install'])
+    sp.run(['find', '/boot',
+            '-maxdepth', '1',
+            '(',
+            '-name', 'initramfs-*',
+            '-o', '-name', 'vmlinuz-*',
+            '-o', '-iname', 'System.map*',
+            '-o', '-iname', 'config-*',
+            ')',
+            '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'], check=True)
+    sp.run(['make', 'install'], check=True)
     kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
-    sp.check_call(['dracut', '--force', '--kver', kver_arg])
-    sp.check_call(['grub2-mkconfig', '-o', GRUB_CFG])
+    sp.run(['dracut', '--force', '--kver', kver_arg], check=True)
+    return sp.run(['grub2-mkconfig', '-o', GRUB_CFG]).returncode
 
 
 def upgrade_kernel(suffix=None, num_cpus=None):
-    lines = filter(None, map(str.strip,
-                             sp.check_output(['eselect',  'kernel',  'list'])
-                               .decode('utf-8')
-                               .split('\n')))
+    kernel_list = sp.run(['eselect', '--colour=no', 'kernel', 'list'],
+                         check=True, stdout=sp.PIPE).stdout.decode('utf-8')
+    lines = filter(None, map(str.strip, kernel_list.split('\n')))
     found = False
 
     for line in lines:
@@ -167,8 +166,10 @@ def upgrade_kernel(suffix=None, num_cpus=None):
     if not found:
         return 1
 
-    blines = sp.check_output(['eselect', '--brief', 'kernel', 'list'])
-    blines = list(filter(None, blines.decode('utf-8').split('\n')))
+    blines = sp.run(['eselect', '--colour=no', '--brief', 'kernel', 'list'],
+                    stdout=sp.PIPE,
+                    check=True).stdout.decode('utf-8')
+    blines = list(filter(None, blines.split('\n')))
     if len(blines) > 2:
         print(('Unexpected number of lines (eselect --brief). '
                'Not updating kernel.'),
@@ -186,9 +187,9 @@ def upgrade_kernel(suffix=None, num_cpus=None):
               file=sys.stderr)
         return 1
 
-    sp.check_call(['eselect', 'kernel', 'set', str(unselected)])
+    sp.run(['eselect', 'kernel', 'set', str(unselected)], check=True)
 
-    rebuild_kernel(num_cpus=num_cpus)
+    return rebuild_kernel(num_cpus=num_cpus)
 
 
 def kernel_command(func):
