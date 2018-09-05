@@ -30,16 +30,24 @@ class KernelConfigError(Exception):
 
 
 def esync():
-    try:
-        sp.check_call(['which', 'layman'], stdout=sp.PIPE)
-        sp.check_call(['layman', '-S'])
-    except sp.CalledProcessError:
-        pass
+    parser = argparse.ArgumentParser(__name__)
+    parser.add_argument('-l', '--run-layman',
+                        action='store_true',
+                        help='Run "layman -S" if installed')
+    args = parser.parse_args()
+
+    if args.run_layman:
+        try:
+            sp.check_call(['which', 'layman'], stdout=sp.PIPE)
+            sp.check_call(['layman', '-S'])
+        except sp.CalledProcessError:
+            pass
     try:
         sp.check_call(['eix-sync', '-qH'])
-    except sp.CalledProcessError:
-        print('You need to have eix-sync installed for this to work',
-              file=sys.stderr)
+    except sp.CalledProcessError as e:
+        if e.returncode != 2:
+            print('You need to have eix-sync installed for this to work',
+                  file=sys.stderr)
         return 1
 
 
