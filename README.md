@@ -4,7 +4,9 @@ This is a set of commands to simplify maintaining a Gentoo system.
 
 ## esync
 
-This command needs `eix` and `layman` installed to fully function. It runs `layman -S` and `eix-sync`. This is intended for use as a cron job. I use it daily.
+This command needs `eix` installed to fully function. It runs `eix-sync`. This is intended for use as a cron job. I use it daily.
+
+This command can run `layman -S` for you if you pass `-l` or `--run-layman`.
 
 ## emerges
 
