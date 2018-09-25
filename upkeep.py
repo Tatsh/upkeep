@@ -76,20 +76,22 @@ def emerges():
     daemon_reexec = not args.no_daemon_reexec
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
+    # Building bc will fail if BC_ENV_ARGS uses a file that Portage cannot read
+    env = dict(BC_ENV_ARGS='')
 
     try:
         sp.run(['emerge', '--oneshot', '--quiet', '--update', 'portage'],
                check=True)
         sp.run(['emerge', '--keep-going', '--with-bdeps=y', '--tree',
                 '--quiet', '--update', '--deep', '--newuse',
-                '@world'] + ask_arg, check=True)
+                '@world'] + ask_arg, check=True, env=env)
 
         if live_rebuild:
             sp.run(['emerge', '--keep-going', '--quiet', '@live-rebuild'],
-                   check=True)
+                   check=True, env=env)
         if preserved_rebuild:
             sp.run(['emerge', '--keep-going', '--quiet', '@preserved-rebuild'],
-                   check=True)
+                   check=True, env=env)
 
         if daemon_reexec:
             try:
