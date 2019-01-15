@@ -1,6 +1,6 @@
 from multiprocessing import cpu_count
 from pathlib import Path
-from os import chdir, umask
+from os import chdir, environ, umask
 from os.path import isfile, realpath
 import argparse
 import gzip
@@ -76,8 +76,11 @@ def emerges():
     daemon_reexec = not args.no_daemon_reexec
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
-    # Building bc will fail if BC_ENV_ARGS uses a file that Portage cannot read
-    env = dict(BC_ENV_ARGS='')
+    env = dict()
+    if environ.get('USE'):
+        env['USE'] = environ['USE']
+    if environ.get('MAKEOPTS'):
+        env['MAKEOPTS'] = environ['MAKEOPTS']
 
     try:
         sp.run(['emerge', '--oneshot', '--quiet', '--update', 'portage'],
