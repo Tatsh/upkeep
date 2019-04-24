@@ -155,7 +155,16 @@ def rebuild_kernel(num_cpus=None):
     sp.run(['make', 'install'], check=True)
     kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
     sp.run(['dracut', '--force', '--kver', kver_arg], check=True)
-    return sp.run(['grub2-mkconfig', '-o', GRUB_CFG]).returncode
+
+    args = ['grub2-mkconfig', '-o', GRUB_CFG]
+    try:
+        return sp.run(args, check=True).returncode
+    except sp.CalledProcessError:
+        args[0] = 'grub-mkconfig'
+        return sp.run(args, check=True).returncode
+
+    raise RuntimeError('Should not reach here (after attempting to run '
+                       'grub2?-mkconfig)')
 
 
 def upgrade_kernel(suffix=None, num_cpus=None):
