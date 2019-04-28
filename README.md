@@ -29,7 +29,7 @@ If `emerges` fails to build the kernel because of the state of `eselect kernel l
 
 The old kernel data in `/boot` will be stored in `/root/.upkeep/old-kernels`.
 
-Only GRUB (`grub2-mkconfig`) and Dracut are supported for the kernel update. There is currently no way to skip Dracut or GRUB. Valid configurations must be present in `/etc`.
+Only GRUB (`grub-mkconfig`) and Dracut are supported for the kernel update. There is currently no way to skip Dracut or GRUB. Valid configurations must be present in `/etc`.
 
 If you want to only rebuild the kernel, run `rebuild-kernel`.
 
