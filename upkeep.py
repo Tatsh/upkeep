@@ -76,11 +76,14 @@ def emerges():
     daemon_reexec = not args.no_daemon_reexec
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
+
+    # Use a minimal environment
     env = dict()
-    if environ.get('USE'):
-        env['USE'] = environ['USE']
-    if environ.get('MAKEOPTS'):
-        env['MAKEOPTS'] = environ['MAKEOPTS']
+    special_env = ('USE', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG', 'PATH',
+                   'SHELL', 'CONFIG_PROTECT')
+    for key in special_env:
+        if environ.get(key):
+            env[key] = environ[key]
 
     try:
         sp.run(['emerge', '--oneshot', '--quiet', '--update', 'portage'],
