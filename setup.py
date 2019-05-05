@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name='upkeep',
-    version='1.2.2',
+    version='1.2.3',
     author='Andrew Udvare',
     author_email='audvare@gmail.com',
     url='https://github.com/Tatsh/upkeep',
@@ -19,6 +19,6 @@ setup(
             'esync = upkeep:esync',
             'rebuild-kernel = upkeep:rebuild_kernel_command',
             'upgrade-kernel = upkeep:upgrade_kernel_command',
-        ]
-    }
+        ],
+    },
 )
