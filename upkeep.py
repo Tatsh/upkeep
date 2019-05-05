@@ -1,7 +1,7 @@
 from multiprocessing import cpu_count
-from pathlib import Path
 from os import chdir, environ, umask
 from os.path import isfile, realpath
+from pathlib import Path
 import argparse
 import gzip
 import re
@@ -18,11 +18,10 @@ __all__ = [
     'upgrade_kernel_command',
 ]
 
-
 CONFIG_GZ = '/proc/config.gz'
-OLD_KERNELS_DIR = '/root/.upkeep/old-kernels'
 GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
+OLD_KERNELS_DIR = '/root/.upkeep/old-kernels'
 
 
 class KernelConfigError(Exception):
@@ -31,7 +30,8 @@ class KernelConfigError(Exception):
 
 def esync():
     parser = argparse.ArgumentParser(__name__)
-    parser.add_argument('-l', '--run-layman',
+    parser.add_argument('-l',
+                        '--run-layman',
                         action='store_true',
                         help='Run "layman -S" if installed')
     args = parser.parse_args()
@@ -88,16 +88,21 @@ def emerges():
     try:
         sp.run(['emerge', '--oneshot', '--quiet', '--update', 'portage'],
                check=True)
-        sp.run(['emerge', '--keep-going', '--with-bdeps=y', '--tree',
-                '--quiet', '--update', '--deep', '--newuse',
-                '@world'] + ask_arg, check=True, env=env)
+        sp.run([
+            'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
+            '--update', '--deep', '--newuse', '@world'
+        ] + ask_arg,
+               check=True,
+               env=env)
 
         if live_rebuild:
             sp.run(['emerge', '--keep-going', '--quiet', '@live-rebuild'],
-                   check=True, env=env)
+                   check=True,
+                   env=env)
         if preserved_rebuild:
             sp.run(['emerge', '--keep-going', '--quiet', '@preserved-rebuild'],
-                   check=True, env=env)
+                   check=True,
+                   env=env)
 
         if daemon_reexec:
             try:
@@ -137,24 +142,19 @@ def rebuild_kernel(num_cpus=None):
     sp.run(['make', 'oldconfig'], check=True)
     sp.run(['make', '-j{}'.format(num_cpus)], check=True)
     sp.run(['make', 'modules_install'], check=True)
-    sp.run(['emerge',
-            '--quiet',
-            '--keep-going',
-            '--quiet-fail',
-            '--verbose',
-            '@module-rebuild',
-            '@x11-module-rebuild'], check=True)
+    sp.run([
+        'emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
+        '@module-rebuild', '@x11-module-rebuild'
+    ],
+           check=True)
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
-    sp.run(['find', '/boot',
-            '-maxdepth', '1',
-            '(',
-            '-name', 'initramfs-*',
-            '-o', '-name', 'vmlinuz-*',
-            '-o', '-iname', 'System.map*',
-            '-o', '-iname', 'config-*',
-            ')',
-            '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'], check=True)
+    sp.run([
+        'find', '/boot', '-maxdepth', '1', '(', '-name', 'initramfs-*', '-o',
+        '-name', 'vmlinuz-*', '-o', '-iname', 'System.map*', '-o', '-iname',
+        'config-*', ')', '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'
+    ],
+           check=True)
     sp.run(['make', 'install'], check=True)
     kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
     sp.run(['dracut', '--force', '--kver', kver_arg], check=True)
@@ -172,7 +172,8 @@ def rebuild_kernel(num_cpus=None):
 
 def upgrade_kernel(suffix=None, num_cpus=None):
     kernel_list = sp.run(['eselect', '--colour=no', 'kernel', 'list'],
-                         check=True, stdout=sp.PIPE).stdout.decode('utf-8')
+                         check=True,
+                         stdout=sp.PIPE).stdout.decode('utf-8')
     lines = filter(None, map(str.strip, kernel_list.split('\n')))
     found = False
 
@@ -199,7 +200,7 @@ def upgrade_kernel(suffix=None, num_cpus=None):
             unselected = int(re.search(r'^\[([0-9]+)\]', line).group(1))
             break
 
-    if unselected not in (1, 2,):
+    if unselected not in (1, 2):
         print('Unexpected number of lines. Not updating kernel.',
               file=sys.stderr)
         return 1
@@ -225,6 +226,7 @@ def kernel_command(func):
             pass
         finally:
             umask(old_umask)
+
     return ret
 
 
