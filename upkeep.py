@@ -162,7 +162,7 @@ def rebuild_kernel(num_cpus=None):
     args = ['grub2-mkconfig', '-o', GRUB_CFG]
     try:
         return sp.run(args, check=True).returncode
-    except sp.CalledProcessError:
+    except (sp.CalledProcessError, FileNotFoundError):
         args[0] = 'grub-mkconfig'
         return sp.run(args, check=True).returncode
 
