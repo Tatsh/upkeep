@@ -13,8 +13,8 @@ __all__ = [
     'emerges',
     'esync',
     'rebuild_kernel',
-    'upgrade_kernel',
     'rebuild_kernel_command',
+    'upgrade_kernel',
     'upgrade_kernel_command',
 ]
 
@@ -22,10 +22,19 @@ CONFIG_GZ = '/proc/config.gz'
 GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/root/.upkeep/old-kernels'
+SPECIAL_ENV = ('USE', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG', 'PATH',
+               'SHELL', 'CONFIG_PROTECT')
 
 
 class KernelConfigError(Exception):
     pass
+
+
+def _minenv():
+    env = dict()
+    for key in SPECIAL_ENV:
+        if environ.get(key):
+            env[key] = environ[key]
 
 
 def esync():
@@ -35,28 +44,30 @@ def esync():
                         action='store_true',
                         help='Run "layman -S" if installed')
     args = parser.parse_args()
+    env = _minenv()
 
     if args.run_layman:
         try:
-            sp.run(['which', 'layman'], stdout=sp.PIPE, check=True)
-            sp.run(['layman', '-S'], check=True)
+            sp.run(['which', 'layman'], stdout=sp.PIPE, check=True, env=env)
+            sp.run(['layman', '-S'], check=True, env=env)
         except sp.CalledProcessError:
             pass
     try:
-        sp.run(['which', 'eix-sync'], stdout=sp.PIPE, check=True)
+        sp.run(['which', 'eix-sync'], stdout=sp.PIPE, check=True, env=env)
     except sp.CalledProcessError as e:
         if e.returncode != 2:
             print('You need to have eix-sync installed for this to work',
                   file=sys.stderr)
         return 1
-    return sp.run(['eix-sync', '-qH']).returncode
+    return sp.run(['eix-sync', '-qH'], env=env).returncode
 
 
 def ecleans():
-    sp.run(['emerge', '--depclean', '--quiet'], check=True)
-    sp.run(['emerge', '--quiet', '@preserved-rebuild'], check=True)
-    sp.run(['revdep-rebuild', '--quiet'], check=True)
-    sp.run(['eclean-dist', '--deep'], check=True)
+    env = _minenv()
+    sp.run(['emerge', '--depclean', '--quiet'], check=True, env=env)
+    sp.run(['emerge', '--quiet', '@preserved-rebuild'], check=True, env=env)
+    sp.run(['revdep-rebuild', '--quiet'], check=True, env=env)
+    sp.run(['eclean-dist', '--deep'], check=True, env=env)
     dirs = list(Path('/var/tmp/portage').glob('*'))
     return sp.run(['rm', '-fR'] + dirs).returncode
 
@@ -76,14 +87,7 @@ def emerges():
     daemon_reexec = not args.no_daemon_reexec
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
-
-    # Use a minimal environment
-    env = dict()
-    special_env = ('USE', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG', 'PATH',
-                   'SHELL', 'CONFIG_PROTECT')
-    for key in special_env:
-        if environ.get(key):
-            env[key] = environ[key]
+    env = _minenv()
 
     try:
         sp.run(['emerge', '--oneshot', '--quiet', '--update', 'portage'],
@@ -106,8 +110,11 @@ def emerges():
 
         if daemon_reexec:
             try:
-                sp.run(['which', 'systemctl'], check=True, stdout=sp.PIPE)
-                sp.run(['systemctl', 'daemon-reexec'], check=True)
+                sp.run(['which', 'systemctl'],
+                       check=True,
+                       stdout=sp.PIPE,
+                       env=env)
+                sp.run(['systemctl', 'daemon-reexec'], check=True, env=env)
             except sp.CalledProcessError:
                 pass
 
@@ -139,14 +146,16 @@ def rebuild_kernel(num_cpus=None):
                     suffix = s
                 break
 
-    sp.run(['make', 'oldconfig'], check=True)
-    sp.run(['make', '-j{}'.format(num_cpus)], check=True)
-    sp.run(['make', 'modules_install'], check=True)
+    env = _minenv()
+    sp.run(['make', 'oldconfig'], check=True, env=env)
+    sp.run(['make', '-j{}'.format(num_cpus)], check=True, env=env)
+    sp.run(['make', 'modules_install'], check=True, env=env)
     sp.run([
         'emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
         '@module-rebuild', '@x11-module-rebuild'
     ],
-           check=True)
+           check=True,
+           env=env)
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
     sp.run([
@@ -154,26 +163,29 @@ def rebuild_kernel(num_cpus=None):
         '-name', 'vmlinuz-*', '-o', '-iname', 'System.map*', '-o', '-iname',
         'config-*', ')', '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'
     ],
-           check=True)
-    sp.run(['make', 'install'], check=True)
+           check=True,
+           env=env)
+    sp.run(['make', 'install'], check=True, env=env)
     kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
-    sp.run(['dracut', '--force', '--kver', kver_arg], check=True)
+    sp.run(['dracut', '--force', '--kver', kver_arg], check=True, env=env)
 
     args = ['grub2-mkconfig', '-o', GRUB_CFG]
     try:
-        return sp.run(args, check=True).returncode
+        return sp.run(args, check=True, env=env).returncode
     except (sp.CalledProcessError, FileNotFoundError):
         args[0] = 'grub-mkconfig'
-        return sp.run(args, check=True).returncode
+        return sp.run(args, check=True, env=env).returncode
 
     raise RuntimeError('Should not reach here (after attempting to run '
                        'grub2?-mkconfig)')
 
 
 def upgrade_kernel(suffix=None, num_cpus=None):
+    env = _minenv()
     kernel_list = sp.run(['eselect', '--colour=no', 'kernel', 'list'],
                          check=True,
-                         stdout=sp.PIPE).stdout.decode('utf-8')
+                         stdout=sp.PIPE,
+                         env=env).stdout.decode('utf-8')
     lines = filter(None, map(str.strip, kernel_list.split('\n')))
     found = False
 
@@ -184,9 +196,11 @@ def upgrade_kernel(suffix=None, num_cpus=None):
     if not found:
         return 1
 
+    env = _minenv()
     blines = sp.run(['eselect', '--colour=no', '--brief', 'kernel', 'list'],
                     stdout=sp.PIPE,
-                    check=True).stdout.decode('utf-8')
+                    check=True,
+                    env=env).stdout.decode('utf-8')
     blines = list(filter(None, blines.split('\n')))
     if len(blines) > 2:
         print(('Unexpected number of lines (eselect --brief). '
@@ -205,7 +219,7 @@ def upgrade_kernel(suffix=None, num_cpus=None):
               file=sys.stderr)
         return 1
 
-    sp.run(['eselect', 'kernel', 'set', str(unselected)], check=True)
+    sp.run(['eselect', 'kernel', 'set', str(unselected)], check=True, env=env)
 
     return rebuild_kernel(num_cpus=num_cpus)
 
