@@ -1,9 +1,11 @@
 from multiprocessing import cpu_count
 from os import chdir, environ, umask
-from os.path import isfile, realpath
+from os.path import basename, isfile, realpath
 from pathlib import Path
+from typing import Callable, Dict, Optional
 import argparse
 import gzip
+import logging
 import re
 import subprocess as sp
 import sys
@@ -24,20 +26,36 @@ KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/root/.upkeep/old-kernels'
 SPECIAL_ENV = ('USE', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG', 'PATH',
                'SHELL', 'CONFIG_PROTECT')
+log: Optional[logging.Logger] = None
+
+
+def _setup_logging_stdout(name: Optional[str] = None,
+                          verbose: bool = False) -> None:
+    global log
+    name = name if name else basename(sys.argv[0])
+    log = logging.getLogger(name)
+    log.setLevel(logging.DEBUG if verbose else logging.INFO)
+    channel = logging.StreamHandler(sys.stdout)
+    channel.setFormatter(logging.Formatter('%(message)s'))
+    channel.setLevel(logging.DEBUG if verbose else logging.INFO)
+    log.addHandler(channel)
 
 
 class KernelConfigError(Exception):
     pass
 
 
-def _minenv():
+def _minenv() -> Dict[str, str]:
     env = dict()
     for key in SPECIAL_ENV:
         if environ.get(key):
             env[key] = environ[key]
+    return env
 
 
-def esync():
+def esync() -> int:
+    _setup_logging_stdout()
+    assert log is not None
     parser = argparse.ArgumentParser(__name__)
     parser.add_argument('-l',
                         '--run-layman',
@@ -48,31 +66,33 @@ def esync():
 
     if args.run_layman:
         try:
-            sp.run(['which', 'layman'], stdout=sp.PIPE, check=True, env=env)
-            sp.run(['layman', '-S'], check=True, env=env)
+            sp.run(('which', 'layman'), stdout=sp.PIPE, check=True, env=env)
+            sp.run(('layman', '-S'), check=True, env=env)
         except sp.CalledProcessError:
             pass
+
     try:
-        sp.run(['which', 'eix-sync'], stdout=sp.PIPE, check=True, env=env)
+        sp.run(('which', 'eix-sync'), stdout=sp.PIPE, check=True, env=env)
     except sp.CalledProcessError as e:
         if e.returncode != 2:
-            print('You need to have eix-sync installed for this to work',
-                  file=sys.stderr)
+            log.error('You need to have eix-sync installed for this to work')
         return 1
-    return sp.run(['eix-sync', '-qH'], env=env).returncode
+
+    return sp.run(('eix-sync', '-qH'), env=env).returncode
 
 
-def ecleans():
+def ecleans() -> int:
     env = _minenv()
-    sp.run(['emerge', '--depclean', '--quiet'], check=True, env=env)
-    sp.run(['emerge', '--quiet', '@preserved-rebuild'], check=True, env=env)
-    sp.run(['revdep-rebuild', '--quiet'], check=True, env=env)
-    sp.run(['eclean-dist', '--deep'], check=True, env=env)
-    dirs = list(Path('/var/tmp/portage').glob('*'))
-    return sp.run(['rm', '-fR'] + dirs).returncode
+    sp.run(('emerge', '--depclean', '--quiet'), check=True, env=env)
+    sp.run(('emerge', '--quiet', '@preserved-rebuild'), check=True, env=env)
+    sp.run(('revdep-rebuild', '--quiet'), check=True, env=env)
+    sp.run(('eclean-dist', '--deep'), check=True, env=env)
+    return sp.run(['rm', '-fR'] +
+                  list(map(str,
+                           Path('/var/tmp/portage').glob('*')))).returncode
 
 
-def emerges():
+def emerges() -> int:
     old_umask = umask(0o022)
     parser = argparse.ArgumentParser(__name__)
     parser.add_argument('-a', '--ask', action='store_true')
@@ -90,7 +110,7 @@ def emerges():
     env = _minenv()
 
     try:
-        sp.run(['emerge', '--oneshot', '--quiet', '--update', 'portage'],
+        sp.run(('emerge', '--oneshot', '--quiet', '--update', 'portage'),
                check=True)
         sp.run([
             'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
@@ -100,21 +120,21 @@ def emerges():
                env=env)
 
         if live_rebuild:
-            sp.run(['emerge', '--keep-going', '--quiet', '@live-rebuild'],
+            sp.run(('emerge', '--keep-going', '--quiet', '@live-rebuild'),
                    check=True,
                    env=env)
         if preserved_rebuild:
-            sp.run(['emerge', '--keep-going', '--quiet', '@preserved-rebuild'],
+            sp.run(('emerge', '--keep-going', '--quiet', '@preserved-rebuild'),
                    check=True,
                    env=env)
 
         if daemon_reexec:
             try:
-                sp.run(['which', 'systemctl'],
+                sp.run(('which', 'systemctl'),
                        check=True,
                        stdout=sp.PIPE,
                        env=env)
-                sp.run(['systemctl', 'daemon-reexec'], check=True, env=env)
+                sp.run(('systemctl', 'daemon-reexec'), check=True, env=env)
             except sp.CalledProcessError:
                 pass
 
@@ -123,8 +143,10 @@ def emerges():
     finally:
         umask(old_umask)
 
+    return 0
 
-def rebuild_kernel(num_cpus=None):
+
+def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
     if not num_cpus:
         num_cpus = cpu_count() + 1
     chdir(KERNEL_SRC_DIR)
@@ -138,8 +160,8 @@ def rebuild_kernel(num_cpus=None):
             'Will not build without a .config file present')
 
     suffix = ''
-    with open('.config', 'r') as f:
-        for line in f.readlines():
+    with open('.config', 'r') as f2:
+        for line in f2.readlines():
             if line.startswith('CONFIG_LOCALVERSION='):
                 s = line.split('=')[-1].strip()[1:-1]
                 if s:
@@ -147,27 +169,24 @@ def rebuild_kernel(num_cpus=None):
                 break
 
     env = _minenv()
-    sp.run(['make', 'oldconfig'], check=True, env=env)
-    sp.run(['make', '-j{}'.format(num_cpus)], check=True, env=env)
-    sp.run(['make', 'modules_install'], check=True, env=env)
-    sp.run([
-        'emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
-        '@module-rebuild', '@x11-module-rebuild'
-    ],
+    sp.run(('make', 'oldconfig'), check=True, env=env)
+    sp.run(('make', f'-j{num_cpus}'), check=True, env=env)
+    sp.run(('make', 'modules_install'), check=True, env=env)
+    sp.run(('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
+            '@module-rebuild', '@x11-module-rebuild'),
            check=True,
            env=env)
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
-    sp.run([
-        'find', '/boot', '-maxdepth', '1', '(', '-name', 'initramfs-*', '-o',
-        '-name', 'vmlinuz-*', '-o', '-iname', 'System.map*', '-o', '-iname',
-        'config-*', ')', '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'
-    ],
-           check=True,
-           env=env)
-    sp.run(['make', 'install'], check=True, env=env)
+    sp.run(
+        ('find', '/boot', '-maxdepth', '1', '(', '-name', 'initramfs-*', '-o',
+         '-name', 'vmlinuz-*', '-o', '-iname', 'System.map*', '-o', '-iname',
+         'config-*', ')', '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'),
+        check=True,
+        env=env)
+    sp.run(('make', 'install'), check=True, env=env)
     kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
-    sp.run(['dracut', '--force', '--kver', kver_arg], check=True, env=env)
+    sp.run(('dracut', '--force', '--kver', kver_arg), check=True, env=env)
 
     args = ['grub2-mkconfig', '-o', GRUB_CFG]
     try:
@@ -180,9 +199,11 @@ def rebuild_kernel(num_cpus=None):
                        'grub2?-mkconfig)')
 
 
-def upgrade_kernel(suffix=None, num_cpus=None):
+def upgrade_kernel(suffix: Optional[str] = None,
+                   num_cpus: Optional[int] = None) -> int:
+    assert log is not None
     env = _minenv()
-    kernel_list = sp.run(['eselect', '--colour=no', 'kernel', 'list'],
+    kernel_list = sp.run(('eselect', '--colour=no', 'kernel', 'list'),
                          check=True,
                          stdout=sp.PIPE,
                          env=env).stdout.decode('utf-8')
@@ -196,35 +217,34 @@ def upgrade_kernel(suffix=None, num_cpus=None):
     if not found:
         return 1
 
-    env = _minenv()
-    blines = sp.run(['eselect', '--colour=no', '--brief', 'kernel', 'list'],
-                    stdout=sp.PIPE,
-                    check=True,
-                    env=env).stdout.decode('utf-8')
-    blines = list(filter(None, blines.split('\n')))
-    if len(blines) > 2:
-        print(('Unexpected number of lines (eselect --brief). '
-               'Not updating kernel.'),
-              file=sys.stderr)
+    b_lines = sp.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
+                     stdout=sp.PIPE,
+                     check=True,
+                     env=env).stdout.decode('utf-8')
+    b_lines_list = list(filter(None, b_lines.split('\n')))
+    if len(b_lines_list) > 2:
+        log.info('Unexpected number of lines (eselect --brief). Not updating '
+                 'kernel.')
         return 1
 
     unselected = None
     for line in lines:
         if not line.endswith('*'):
-            unselected = int(re.search(r'^\[([0-9]+)\]', line).group(1))
-            break
+            m = re.search(r'^\[([0-9]+)\]', line)
+            if m:
+                unselected = int(m.group(1))
+                break
 
     if unselected not in (1, 2):
-        print('Unexpected number of lines. Not updating kernel.',
-              file=sys.stderr)
+        log.info('Unexpected number of lines. Not updating kernel.')
         return 1
 
-    sp.run(['eselect', 'kernel', 'set', str(unselected)], check=True, env=env)
+    sp.run(('eselect', 'kernel', 'set', str(unselected)), check=True, env=env)
 
     return rebuild_kernel(num_cpus=num_cpus)
 
 
-def kernel_command(func):
+def kernel_command(func: Callable[[], int]):
     def ret():
         old_umask = umask(0o022)
         parser = argparse.ArgumentParser(__name__)
@@ -233,7 +253,7 @@ def kernel_command(func):
                             default=cpu_count() + 1,
                             type=int)
         args = parser.parse_args()
-
+        _setup_logging_stdout()
         try:
             return func(num_cpus=args.number_of_jobs)
         except KeyboardInterrupt:
