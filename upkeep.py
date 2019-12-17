@@ -139,14 +139,14 @@ def emerges() -> int:
                 pass
 
         if up_kernel:
-            return upgrade_kernel()
+            return upgrade_kernel(None)
     finally:
         umask(old_umask)
 
     return 0
 
 
-def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
+def rebuild_kernel(num_cpus: Optional[int]) -> int:
     if not num_cpus:
         num_cpus = cpu_count() + 1
     chdir(KERNEL_SRC_DIR)
@@ -199,8 +199,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
                        'grub2?-mkconfig)')
 
 
-def upgrade_kernel(suffix: Optional[str] = None,
-                   num_cpus: Optional[int] = None) -> int:
+def upgrade_kernel(num_cpus: Optional[int]) -> int:
     assert log is not None
     env = _minenv()
     kernel_list = sp.run(('eselect', '--colour=no', 'kernel', 'list'),
@@ -241,25 +240,23 @@ def upgrade_kernel(suffix: Optional[str] = None,
 
     sp.run(('eselect', 'kernel', 'set', str(unselected)), check=True, env=env)
 
-    return rebuild_kernel(num_cpus=num_cpus)
+    return rebuild_kernel(num_cpus)
 
 
-def kernel_command(func: Callable[[], int]):
-    def ret():
+def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
+    def ret() -> int:
         old_umask = umask(0o022)
         parser = argparse.ArgumentParser(__name__)
         parser.add_argument('-j',
                             '--number-of-jobs',
                             default=cpu_count() + 1,
                             type=int)
-        args = parser.parse_args()
         _setup_logging_stdout()
         try:
-            return func(num_cpus=args.number_of_jobs)
-        except KeyboardInterrupt:
-            pass
+            return func(parser.parse_args().number_of_jobs)
         finally:
             umask(old_umask)
+        return 1
 
     return ret
 
