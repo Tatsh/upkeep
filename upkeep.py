@@ -2,7 +2,8 @@ from multiprocessing import cpu_count
 from os import chdir, environ, umask
 from os.path import basename, isfile, realpath
 from pathlib import Path
-from typing import Callable, Dict, Optional
+from shlex import quote
+from typing import Callable, Dict, Optional, Tuple
 import argparse
 import gzip
 import logging
@@ -23,7 +24,7 @@ __all__ = [
 CONFIG_GZ = '/proc/config.gz'
 GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
-OLD_KERNELS_DIR = '/root/.upkeep/old-kernels'
+OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV = ('USE', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG', 'PATH',
                'SHELL', 'CONFIG_PROTECT')
 log: Optional[logging.Logger] = None
@@ -93,6 +94,8 @@ def ecleans() -> int:
 
 
 def emerges() -> int:
+    _setup_logging_stdout()
+    assert log is not None
     old_umask = umask(0o022)
     parser = argparse.ArgumentParser(__name__)
     parser.add_argument('-a', '--ask', action='store_true')
@@ -111,7 +114,8 @@ def emerges() -> int:
 
     try:
         sp.run(('emerge', '--oneshot', '--quiet', '--update', 'portage'),
-               check=True)
+               check=True,
+               env=env)
         sp.run([
             'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
             '--update', '--deep', '--newuse', '@world'
@@ -147,6 +151,7 @@ def emerges() -> int:
 
 
 def rebuild_kernel(num_cpus: Optional[int]) -> int:
+    assert log is not None
     if not num_cpus:
         num_cpus = cpu_count() + 1
     chdir(KERNEL_SRC_DIR)
@@ -169,6 +174,17 @@ def rebuild_kernel(num_cpus: Optional[int]) -> int:
                 break
 
     env = _minenv()
+    commands: Tuple[Tuple[str, ...], ...] = (
+        ('make', 'oldconfig'),
+        ('make', f'-j{num_cpus}'),
+        ('make', 'modules_install'),
+        ('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
+         '@module-rebuild', '@x11-module-rebuild'),
+    )
+    for cmd in commands:
+        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        sp.run(cmd, check=True, env=env, stdout=sp.PIPE)
+
     sp.run(('make', 'oldconfig'), check=True, env=env)
     sp.run(('make', f'-j{num_cpus}'), check=True, env=env)
     sp.run(('make', 'modules_install'), check=True, env=env)
@@ -186,7 +202,12 @@ def rebuild_kernel(num_cpus: Optional[int]) -> int:
         env=env)
     sp.run(('make', 'install'), check=True, env=env)
     kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
-    sp.run(('dracut', '--force', '--kver', kver_arg), check=True, env=env)
+    cmd = ('dracut', '--force', '--kver', kver_arg)
+    log.info('Running: %s', ' '.join(map(quote, cmd)))
+    sp.run(('dracut', '--force', '--kver', kver_arg),
+           check=True,
+           env=env,
+           stdout=sp.PIPE)
 
     args = ['grub2-mkconfig', '-o', GRUB_CFG]
     try:
@@ -205,7 +226,8 @@ def upgrade_kernel(num_cpus: Optional[int]) -> int:
     kernel_list = sp.run(('eselect', '--colour=no', 'kernel', 'list'),
                          check=True,
                          stdout=sp.PIPE,
-                         env=env).stdout.decode('utf-8')
+                         encoding='utf-8',
+                         env=env).stdout
     lines = filter(None, map(str.strip, kernel_list.split('\n')))
     found = False
 
@@ -219,7 +241,8 @@ def upgrade_kernel(num_cpus: Optional[int]) -> int:
     b_lines = sp.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
                      stdout=sp.PIPE,
                      check=True,
-                     env=env).stdout.decode('utf-8')
+                     encoding='utf-8',
+                     env=env).stdout
     b_lines_list = list(filter(None, b_lines.split('\n')))
     if len(b_lines_list) > 2:
         log.info('Unexpected number of lines (eselect --brief). Not updating '
