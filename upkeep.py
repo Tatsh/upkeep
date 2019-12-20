@@ -204,17 +204,41 @@ def rebuild_kernel(num_cpus: Optional[int]) -> int:
     kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
     cmd = ('dracut', '--force', '--kver', kver_arg)
     log.info('Running: %s', ' '.join(map(quote, cmd)))
-    sp.run(('dracut', '--force', '--kver', kver_arg),
-           check=True,
-           env=env,
-           stdout=sp.PIPE)
+    try:
+        sp.run(('dracut', '--force', '--kver', kver_arg),
+               check=True,
+               env=env,
+               encoding='utf-8',
+               stdout=sp.PIPE,
+               stderr=sp.PIPE)
+    except sp.CalledProcessError as e:
+        log.error('Failed!')
+        log.error('STDOUT: %s', e.stdout)
+        log.error('STDERR: %s', e.stderr)
+        return e.returncode
 
     args = ['grub2-mkconfig', '-o', GRUB_CFG]
     try:
-        return sp.run(args, check=True, env=env).returncode
+        return sp.run(args,
+                      check=True,
+                      encoding='utf-8',
+                      env=env,
+                      stdout=sp.PIPE,
+                      stderr=sp.PIPE).returncode
     except (sp.CalledProcessError, FileNotFoundError):
         args[0] = 'grub-mkconfig'
-        return sp.run(args, check=True, env=env).returncode
+        try:
+            return sp.run(args,
+                          check=True,
+                          env=env,
+                          encoding='utf-8',
+                          stdout=sp.PIPE,
+                          stderr=sp.PIPE).returncode
+        except sp.CalledProcessError as e:
+            log.error('Failed!')
+            log.error('STDOUT: %s', e.stdout)
+            log.error('STDERR: %s', e.stderr)
+            return e.returncode
 
     raise RuntimeError('Should not reach here (after attempting to run '
                        'grub2?-mkconfig)')
