@@ -11,7 +11,7 @@ import re
 import subprocess as sp
 import sys
 
-__all__ = [
+__all__ = (
     'ecleans',
     'emerges',
     'esync',
@@ -19,7 +19,7 @@ __all__ = [
     'rebuild_kernel_command',
     'upgrade_kernel',
     'upgrade_kernel_command',
-]
+)
 
 CONFIG_GZ = '/proc/config.gz'
 GRUB_CFG = '/boot/grub/grub.cfg'
