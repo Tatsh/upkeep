@@ -185,14 +185,6 @@ def rebuild_kernel(num_cpus: Optional[int]) -> int:
         log.info('Running: %s', ' '.join(map(quote, cmd)))
         sp.run(cmd, check=True, env=env, stdout=sp.PIPE)
 
-    sp.run(('make', 'oldconfig'), check=True, env=env)
-    sp.run(('make', f'-j{num_cpus}'), check=True, env=env)
-    sp.run(('make', 'modules_install'), check=True, env=env)
-    sp.run(('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
-            '@module-rebuild', '@x11-module-rebuild'),
-           check=True,
-           env=env)
-
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
     sp.run(
         ('find', '/boot', '-maxdepth', '1', '(', '-name', 'initramfs-*', '-o',
@@ -205,7 +197,7 @@ def rebuild_kernel(num_cpus: Optional[int]) -> int:
     cmd = ('dracut', '--force', '--kver', kver_arg)
     log.info('Running: %s', ' '.join(map(quote, cmd)))
     try:
-        sp.run(('dracut', '--force', '--kver', kver_arg),
+        sp.run(cmd,
                check=True,
                env=env,
                encoding='utf-8',
