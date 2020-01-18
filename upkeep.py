@@ -1,3 +1,4 @@
+from functools import lru_cache
 from multiprocessing import cpu_count
 from os import chdir, environ, umask
 from os.path import basename, isfile, realpath
@@ -46,6 +47,7 @@ class KernelConfigError(Exception):
     pass
 
 
+@lru_cache()
 def _minenv() -> Dict[str, str]:
     env = dict()
     for key in SPECIAL_ENV:
