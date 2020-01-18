@@ -174,8 +174,9 @@ def rebuild_kernel(num_cpus: Optional[int]) -> int:
                 break
 
     env = _minenv()
+    log.info('Running: make oldconfig')
+    sp.run(('make', 'oldconfig'), check=True, env=env)
     commands: Tuple[Tuple[str, ...], ...] = (
-        ('make', 'oldconfig'),
         ('make', f'-j{num_cpus}'),
         ('make', 'modules_install'),
         ('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
