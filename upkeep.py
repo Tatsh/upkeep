@@ -26,7 +26,7 @@ GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV = ('USE', 'HOME', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG',
-               'PATH', 'SHELL', 'CONFIG_PROTECT')
+               'PATH', 'SHELL', 'CONFIG_PROTECT', 'TERM')
 log: Optional[logging.Logger] = None
 
 
