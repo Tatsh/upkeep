@@ -28,12 +28,12 @@ KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV = ('USE', 'HOME', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG',
                'PATH', 'SHELL', 'CONFIG_PROTECT', 'TERM')
-log: Optional[logging.Logger] = None
+log: Optional[logging.Logger] = None  # pylint: disable=invalid-name
 
 
 def _setup_logging_stdout(name: Optional[str] = None,
                           verbose: bool = False) -> None:
-    global log
+    global log  # pylint: disable=global-statement,invalid-name
     name = name if name else basename(sys.argv[0])
     log = logging.getLogger(name)
     log.setLevel(logging.DEBUG if verbose else logging.INFO)
@@ -81,7 +81,7 @@ def esync() -> int:
             log.error('You need to have eix-sync installed for this to work')
         return 1
 
-    return sp.run(('eix-sync', '-qH'), env=env).returncode
+    return sp.run(('eix-sync', '-qH'), env=env).returncode  # pylint: disable=subprocess-run-check
 
 
 def ecleans() -> int:
@@ -90,7 +90,7 @@ def ecleans() -> int:
     sp.run(('emerge', '--quiet', '@preserved-rebuild'), check=True, env=env)
     sp.run(('revdep-rebuild', '--quiet'), check=True, env=env)
     sp.run(('eclean-dist', '--deep'), check=True, env=env)
-    return sp.run(['rm', '-fR'] +
+    return sp.run(['rm', '-fR'] +  # pylint: disable=subprocess-run-check
                   list(map(str,
                            Path('/var/tmp/portage').glob('*')))).returncode
 
@@ -167,8 +167,8 @@ def rebuild_kernel(num_cpus: Optional[int]) -> int:
             'Will not build without a .config file present')
 
     suffix = ''
-    with open('.config', 'r') as f2:
-        for line in f2.readlines():
+    with open('.config', 'r') as file2:
+        for line in file2.readlines():
             if line.startswith('CONFIG_LOCALVERSION='):
                 s = line.split('=')[-1].strip()[1:-1]
                 if s:
@@ -255,6 +255,7 @@ def upgrade_kernel(num_cpus: Optional[int]) -> int:
             found = True
             break
     if not found:
+        log.info('Select a kernel to upgrade to (eselect kernel set ...).')
         return 1
 
     b_lines = sp.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
@@ -302,5 +303,7 @@ def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
     return ret
 
 
+# pylint: disable=invalid-name
 upgrade_kernel_command = kernel_command(upgrade_kernel)
 rebuild_kernel_command = kernel_command(rebuild_kernel)
+# pylint: enable=invalid-name
