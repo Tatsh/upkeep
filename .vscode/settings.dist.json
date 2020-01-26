@@ -1,10 +1,20 @@
 {
-    "cSpell.words": [
-        "ecleans",
-        "esync",
-        "kver",
-        "minenv"
-    ],
-    "python.formatting.provider": "yapf",
-    "python.pythonPath": "~/.virtualenvs/upkeep/bin/python"
+  "cSpell.ignoreWords": [
+    "bdeps",
+    "cpus",
+    "dracut",
+    "eclean",
+    "initramfs",
+    "mkconfig",
+    "pylint",
+    "reexec",
+    "vmlinuz",
+    "ecleans",
+    "esync",
+    "kver",
+    "minenv"
+  ],
+  "python.formatting.provider": "yapf",
+  "python.linting.pylintEnabled": true,
+  "python.pythonPath": "~/.virtualenvs/upkeep/bin/python"
 }
