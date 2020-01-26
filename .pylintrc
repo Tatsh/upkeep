@@ -28,7 +28,7 @@ limit-inference-results=100
 
 # List of plugins (as comma separated values of python module names) to load,
 # usually to register additional checkers.
-load-plugins=
+load-plugins=pylint_quotes
 
 # Pickle collected data for later comparisons.
 persistent=yes
@@ -591,3 +591,7 @@ min-public-methods=2
 # "BaseException, Exception".
 overgeneral-exceptions=BaseException,
                        Exception
+
+string-quote=single
+triple-quote=double
+docstring-quote=double
