@@ -298,7 +298,6 @@ def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
             return func(parser.parse_args().number_of_jobs)
         finally:
             umask(old_umask)
-        return 1
 
     return ret
 
