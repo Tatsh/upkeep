@@ -57,6 +57,20 @@ def _minenv() -> Dict[str, str]:
 
 
 def esync() -> int:
+    """
+    Syncs Portage sources. Requires ``app-portage/eix`` to be installed.
+
+    This runs the following:
+
+    - ``layman -S`` (if ``-l`` is passed in CLI arguments and if it is
+      available)
+    - ``eix-sync``
+
+    Returns
+    -------
+    int
+        Exit code of ``eix-sync``.
+    """
     _setup_logging_stdout()
     assert log is not None
     parser = argparse.ArgumentParser(__name__)
@@ -85,6 +99,20 @@ def esync() -> int:
 
 
 def ecleans() -> int:
+    """
+    Runs the following clean up commands:
+
+    - ``emerge --depclean --quiet``
+    - ``emerge --quiet @preserved-rebuild``
+    - ``revdep-rebuild --quiet``
+    - ``eclean-dist --deep``
+    - ``rm -fR /var/tmp/portage/*``
+
+    Returns
+    -------
+    int
+        Exit code of the last command.
+    """
     env = _minenv()
     sp.run(('emerge', '--depclean', '--quiet'), check=True, env=env)
     sp.run(('emerge', '--quiet', '@preserved-rebuild'), check=True, env=env)
@@ -96,6 +124,34 @@ def ecleans() -> int:
 
 
 def emerges() -> int:
+    """
+    Runs the following steps:
+
+    - ``emerge --oneshot --quiet --update portage``
+    - ``emerge --keep-going --with-bdeps=y --tree --quiet --update --deep --newuse @world``
+    - ``emerge --keep-going --quiet @live-rebuild``
+    - ``emerge --keep-going --quiet @preserved-rebuild``
+    - ``systemctl daemon-reexec`` if applicable
+    - upgrade kernel
+
+    This function understands the following CLI flags:
+
+    - ``-a`` / ``--ask``: Pass ``--ask`` to the ``emerge @world`` command
+    - ``-L`` / ``--no-live-rebuild``: Skip ``emerge @live-rebuild`` step
+    - ``-P`` / ``--no-preserved-rebuild``: Skip ``emerge @preserved-rebuild``
+      step
+    - ``-D`` / ``--no-daemon-reexec``: Skip ``systemctl daemon-reexec`` step
+    - ``-U`` / ``--no-upgrade-kernel``: Skip upgrading the kernel.
+
+    Returns
+    -------
+    int
+        The exit code of the last command from ``upgrade_kernel`` or ``0``.
+
+    See Also
+    --------
+    upgrade_kernel
+    """
     _setup_logging_stdout()
     assert log is not None
     old_umask = umask(0o022)
@@ -152,7 +208,46 @@ def emerges() -> int:
     return 0
 
 
-def rebuild_kernel(num_cpus: Optional[int]) -> int:
+def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
+    """
+    Rebuilds the kernel.
+
+    Runs the following steps:
+
+    - Checks for a kernel configuration in ``/usr/src/linux/.config`` or
+      ``/proc/config.gz``
+    - ``make oldconfig``
+    - ``make``
+    - ``make modules_install``
+    - ``emerge --quiet --keep-going --quiet-fail --verbose @module-rebuild @x11-module-rebuild``
+    - Archives the old kernel and related files in ``/boot`` to the old kernels
+      directory.
+    - ``make install``
+    - ``dracut --force``
+    - ``grub-mkconfig -o /boot/grub/grub.cfg``
+
+    Parameters
+    ----------
+    num_cpus : int
+        Number of CPUs (or threads) to pass to ``make -j...``. If not passed,
+        defaults to getting the value from ``multiprocessing.cpu_count()``.
+
+    Raises
+    ------
+    KernelConfigError
+        If a kernel configuration cannot be found.
+    RuntimeError
+        If grub-mkconfig fails
+
+    Returns
+    -------
+    int
+        Returns the exit code of the last run command.
+
+    See Also
+    --------
+    upgrade_kernel
+    """
     assert log is not None
     if not num_cpus:
         num_cpus = cpu_count() + 1
@@ -239,7 +334,30 @@ def rebuild_kernel(num_cpus: Optional[int]) -> int:
                        'grub2?-mkconfig)')
 
 
-def upgrade_kernel(num_cpus: Optional[int]) -> int:
+def upgrade_kernel(num_cpus: Optional[int] = None) -> int:
+    """
+    Upgrades the kernel.
+
+    The logic used here is to check the `eselect kernel` output for two kernel
+    lines, where one is selected and the newest kernel is not. The newest
+    kernel then gets picked and ``upgrade_kernel()`` takes care of the rest.
+
+    Parameters
+    ----------
+    num_cpus : int
+        Number of CPUs (or threads) to pass to ``make -j...``. If not passed,
+        defaults to getting the value from ``multiprocessing.cpu_count()``.
+
+    Returns
+    -------
+    int
+        Returns ``1`` if the ``eselect`` output is not usable. Otherwise,
+        returns the result from ``upgrade_kernel()``.
+
+    See Also
+    --------
+    rebuild_kernel
+    """
     assert log is not None
     env = _minenv()
     kernel_list = sp.run(('eselect', '--colour=no', 'kernel', 'list'),
@@ -287,6 +405,19 @@ def upgrade_kernel(num_cpus: Optional[int]) -> int:
 
 
 def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
+    """
+    CLI entry point for the ``upgrade-kernel`` and ``rebuild-kernel`` commands.
+
+    Parameters
+    ----------
+    func : callable
+        A callable that accepts an integer representing number of CPUs.
+
+    Returns
+    -------
+    callable
+        Callable that takes no parameters and returns an integer.
+    """
     def ret() -> int:
         old_umask = umask(0o022)
         parser = argparse.ArgumentParser(__name__)
@@ -304,6 +435,16 @@ def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
 
 
 # pylint: disable=invalid-name
+#: Entry point for the ``upgrade-kernel`` command.
+#:
+#: See Also
+#: --------
+#: upgrade_kernel
 upgrade_kernel_command = kernel_command(upgrade_kernel)
+#: Entry point for the ``rebuild-kernel`` command.
+#:
+#: See Also
+#: --------
+#: rebuild_kernel
 rebuild_kernel_command = kernel_command(rebuild_kernel)
 # pylint: enable=invalid-name
