@@ -124,6 +124,7 @@ def ecleans() -> int:
 
 
 def emerges() -> int:
+    # pylint: disable=line-too-long
     """
     Runs the following steps:
 
@@ -152,6 +153,7 @@ def emerges() -> int:
     --------
     upgrade_kernel
     """
+    # pylint: enable=line-too-long
     _setup_logging_stdout()
     assert log is not None
     old_umask = umask(0o022)
@@ -209,6 +211,7 @@ def emerges() -> int:
 
 
 def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
+    # pylint: disable=line-too-long
     """
     Rebuilds the kernel.
 
@@ -248,6 +251,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
     --------
     upgrade_kernel
     """
+    # pylint: enable=line-too-long
     assert log is not None
     if not num_cpus:
         num_cpus = cpu_count() + 1
@@ -366,41 +370,34 @@ def upgrade_kernel(num_cpus: Optional[int] = None) -> int:
                          encoding='utf-8',
                          env=env).stdout
     lines = filter(None, map(str.strip, kernel_list.split('\n')))
-    found = False
 
-    for line in lines:
-        if re.search(r'\*$', line):
-            found = True
-            break
-    if not found:
+    if not any(re.search(r'\*$', line) for line in lines):
         log.info('Select a kernel to upgrade to (eselect kernel set ...).')
         return 1
-
-    b_lines = sp.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
-                     stdout=sp.PIPE,
-                     check=True,
-                     encoding='utf-8',
-                     env=env).stdout
-    b_lines_list = list(filter(None, b_lines.split('\n')))
-    if len(b_lines_list) > 2:
+    if len(
+            list(
+                filter(
+                    None,
+                    sp.run(('eselect', '--colour=no', '--brief', 'kernel',
+                            'list'),
+                           stdout=sp.PIPE,
+                           check=True,
+                           encoding='utf-8',
+                           env=env).stdout.split('\n')))) > 2:
         log.info('Unexpected number of lines (eselect --brief). Not updating '
                  'kernel.')
         return 1
 
     unselected = None
-    for line in lines:
-        if not line.endswith('*'):
-            m = re.search(r'^\[([0-9]+)\]', line)
-            if m:
-                unselected = int(m.group(1))
-                break
-
+    for line in (x for x in lines if not x.endswith('*')):
+        m = re.search(r'^\[([0-9]+)\]', line)
+        if m:
+            unselected = int(m.group(1))
+            break
     if unselected not in (1, 2):
         log.info('Unexpected number of lines. Not updating kernel.')
         return 1
-
     sp.run(('eselect', 'kernel', 'set', str(unselected)), check=True, env=env)
-
     return rebuild_kernel(num_cpus)
 
 
