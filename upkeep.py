@@ -1,11 +1,11 @@
 from contextlib import ExitStack
-from functools import lru_cache
+from functools import lru_cache, wraps
 from multiprocessing import cpu_count
-from os import chdir, environ, umask
+from os import chdir, environ, umask as set_umask
 from os.path import basename, isfile, realpath
 from pathlib import Path
 from shlex import quote
-from typing import Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, cast
 import argparse
 import gzip
 import logging
@@ -34,6 +34,27 @@ KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV = ('USE', 'HOME', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG',
                'PATH', 'SHELL', 'CONFIG_PROTECT', 'TERM')
+AnyCallable = Callable[..., Any]
+
+
+def umask(_func: Optional[AnyCallable] = None,
+          *,
+          new_umask: int) -> AnyCallable:
+    """Restores prior umask after calling the decorated function."""
+    def decorator_umask(func: AnyCallable) -> AnyCallable:
+        @wraps(func)
+        def inner(*args: Any, **kwargs: Any) -> Any:
+            old_umask = set_umask(new_umask)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                set_umask(old_umask)
+
+        return inner
+
+    if not _func:
+        return decorator_umask
+    return decorator_umask(_func)
 
 
 @lru_cache()
@@ -99,6 +120,7 @@ def esync() -> int:
     return sp.run(('eix-sync', '-qH'), env=env).returncode  # pylint: disable=subprocess-run-check
 
 
+@umask(new_umask=0o022)
 def ecleans() -> int:
     """
     Runs the following clean up commands:
@@ -124,6 +146,7 @@ def ecleans() -> int:
                            Path('/var/tmp/portage').glob('*')))).returncode
 
 
+@umask(new_umask=0o022)
 def emerges() -> int:
     # pylint: disable=line-too-long
     """
@@ -155,7 +178,6 @@ def emerges() -> int:
     upgrade_kernel
     """
     # pylint: enable=line-too-long
-    old_umask = umask(0o022)
     parser = argparse.ArgumentParser(__name__)
     parser.add_argument('-a', '--ask', action='store_true')
     parser.add_argument('-L', '--no-live-rebuild', action='store_true')
@@ -171,40 +193,34 @@ def emerges() -> int:
     ask_arg = ['--ask'] if args.ask else []
     env = _minenv()
 
-    try:
-        sp.run(('emerge', '--oneshot', '--quiet', '--update', 'portage'),
+    sp.run(('emerge', '--oneshot', '--quiet', '--update', 'portage'),
+           check=True,
+           env=env)
+    sp.run([
+        'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
+        '--update', '--deep', '--newuse', '@world'
+    ] + ask_arg,
+           check=True,
+           env=env)
+
+    if live_rebuild:
+        sp.run(('emerge', '--keep-going', '--quiet', '@live-rebuild'),
                check=True,
                env=env)
-        sp.run([
-            'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
-            '--update', '--deep', '--newuse', '@world'
-        ] + ask_arg,
+    if preserved_rebuild:
+        sp.run(('emerge', '--keep-going', '--quiet', '@preserved-rebuild'),
                check=True,
                env=env)
 
-        if live_rebuild:
-            sp.run(('emerge', '--keep-going', '--quiet', '@live-rebuild'),
-                   check=True,
-                   env=env)
-        if preserved_rebuild:
-            sp.run(('emerge', '--keep-going', '--quiet', '@preserved-rebuild'),
-                   check=True,
-                   env=env)
+    if daemon_reexec:
+        try:
+            sp.run(('which', 'systemctl'), check=True, stdout=sp.PIPE, env=env)
+            sp.run(('systemctl', 'daemon-reexec'), check=True, env=env)
+        except sp.CalledProcessError:
+            pass
 
-        if daemon_reexec:
-            try:
-                sp.run(('which', 'systemctl'),
-                       check=True,
-                       stdout=sp.PIPE,
-                       env=env)
-                sp.run(('systemctl', 'daemon-reexec'), check=True, env=env)
-            except sp.CalledProcessError:
-                pass
-
-        if up_kernel:
-            return upgrade_kernel(None)
-    finally:
-        umask(old_umask)
+    if up_kernel:
+        return upgrade_kernel(None)
 
     return 0
 
@@ -414,22 +430,19 @@ def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
     callable
         Callable that takes no parameters and returns an integer.
     """
+    @umask(new_umask=0o022)
     def ret() -> int:
-        old_umask = umask(0o022)
         parser = argparse.ArgumentParser(__name__)
         parser.add_argument('-j',
                             '--number-of-jobs',
                             default=cpu_count() + 1,
                             type=int)
-        _setup_logging_stdout()
         try:
             return func(parser.parse_args().number_of_jobs)
         except KernelConfigError:
             return 1
-        finally:
-            umask(old_umask)
 
-    return ret
+    return cast(Callable[[], int], ret)
 
 
 # pylint: disable=invalid-name
