@@ -11,14 +11,14 @@ setup(
     description='Portage update helper scripts.',
     long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    py_modules=['upkeep'],
+    py_modules=('upkeep', ),
     entry_points={
-        'console_scripts': [
+        'console_scripts': (
             'ecleans = upkeep:ecleans',
             'emerges = upkeep:emerges',
             'esync = upkeep:esync',
             'rebuild-kernel = upkeep:rebuild_kernel_command',
             'upgrade-kernel = upkeep:upgrade_kernel_command',
-        ],
+        ),
     },
 )
