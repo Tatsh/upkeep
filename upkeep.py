@@ -1,3 +1,4 @@
+from contextlib import ExitStack
 from functools import lru_cache
 from multiprocessing import cpu_count
 from os import chdir, environ, umask
@@ -28,12 +29,11 @@ KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV = ('USE', 'HOME', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG',
                'PATH', 'SHELL', 'CONFIG_PROTECT', 'TERM')
-log: Optional[logging.Logger] = None  # pylint: disable=invalid-name
 
 
+@lru_cache()
 def _setup_logging_stdout(name: Optional[str] = None,
-                          verbose: bool = False) -> None:
-    global log  # pylint: disable=global-statement,invalid-name
+                          verbose: bool = False) -> logging.Logger:
     name = name if name else basename(sys.argv[0])
     log = logging.getLogger(name)
     log.setLevel(logging.DEBUG if verbose else logging.INFO)
@@ -41,6 +41,7 @@ def _setup_logging_stdout(name: Optional[str] = None,
     channel.setFormatter(logging.Formatter('%(message)s'))
     channel.setLevel(logging.DEBUG if verbose else logging.INFO)
     log.addHandler(channel)
+    return log
 
 
 class KernelConfigError(Exception):
@@ -71,8 +72,7 @@ def esync() -> int:
     int
         Exit code of ``eix-sync``.
     """
-    _setup_logging_stdout()
-    assert log is not None
+    log = _setup_logging_stdout()
     parser = argparse.ArgumentParser(__name__)
     parser.add_argument('-l',
                         '--run-layman',
@@ -154,8 +154,6 @@ def emerges() -> int:
     upgrade_kernel
     """
     # pylint: enable=line-too-long
-    _setup_logging_stdout()
-    assert log is not None
     old_umask = umask(0o022)
     parser = argparse.ArgumentParser(__name__)
     parser.add_argument('-a', '--ask', action='store_true')
@@ -252,15 +250,15 @@ def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
     upgrade_kernel
     """
     # pylint: enable=line-too-long
-    assert log is not None
+    log = _setup_logging_stdout()
     if not num_cpus:
         num_cpus = cpu_count() + 1
     chdir(KERNEL_SRC_DIR)
 
     if not isfile('.config') and isfile(CONFIG_GZ):
-        with gzip.open(CONFIG_GZ) as z:
-            with open('.config', 'wb+') as f:
-                f.write(z.read())
+        with ExitStack() as stack:
+            stack.enter_context(open('.config', 'wb+')).write(
+                stack.enter_context(gzip.open(CONFIG_GZ)).read())
     if not isfile('.config'):
         raise KernelConfigError(
             'Will not build without a .config file present')
@@ -362,7 +360,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None) -> int:
     --------
     rebuild_kernel
     """
-    assert log is not None
+    log = _setup_logging_stdout()
     env = _minenv()
     kernel_list = sp.run(('eselect', '--colour=no', 'kernel', 'list'),
                          check=True,
@@ -425,6 +423,8 @@ def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
         _setup_logging_stdout()
         try:
             return func(parser.parse_args().number_of_jobs)
+        except KernelConfigError:
+            return 1
         finally:
             umask(old_umask)
 
