@@ -23,6 +23,11 @@ __all__ = (
     'upgrade_kernel_command',
 )
 
+
+class KernelConfigError(Exception):
+    pass
+
+
 CONFIG_GZ = '/proc/config.gz'
 GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
@@ -42,10 +47,6 @@ def _setup_logging_stdout(name: Optional[str] = None,
     channel.setLevel(logging.DEBUG if verbose else logging.INFO)
     log.addHandler(channel)
     return log
-
-
-class KernelConfigError(Exception):
-    pass
 
 
 @lru_cache()
