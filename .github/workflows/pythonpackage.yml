@@ -28,6 +28,6 @@ jobs:
         pip install -e .
         pip install mypy pylint
     - name: Lint with mypy
-      run: mypy *.py source/conf.py
+      run: mypy upkeep.py source/conf.py
     - name: Lint with pylint
-      run: pylint *.py source/conf.py
+      run: pylint upkeep.py source/conf.py
