@@ -1,10 +1,12 @@
 from typing import Callable, Iterator
-import pytest
+from unittest.mock import patch
 import subprocess as sp
 import sys
 
-from unittest.mock import patch
+import pytest
+
 from upkeep import _minenv, esync
+
 from .utils import add_output as add_output_func, get_output, reset_output
 
 AddOutput = Callable[..., None]
