@@ -7,23 +7,29 @@ import subprocess as sp
 
 from typing_extensions import overload
 
-__all__ = ('add_output', 'run_mock')
+__all__ = ('add_output', 'get_output')
 
 _outputs: Dict[Tuple[Any, ...], Any] = {}
 
 
 def _make_key(*args: Any, **kwargs: Any) -> Any:
-    return args + (json.dumps(kwargs), )
+    return args + (json.dumps(kwargs, sort_keys=True), )
 
 
-def _get_output(*args: Any, **kwargs: Any) -> Any:
+def get_output(*args: Any, **kwargs: Any) -> Any:
+    key = _make_key(*args, **kwargs)
     try:
-        return _outputs[_make_key(*args, **kwargs)]
+        val = _outputs[key]
     except KeyError:
         return None
+    if isinstance(val, Exception):
+        raise val
+    return val
 
 
-run_mock = patch('upkeep.sp.run', side_effect=_get_output)  # pylint: disable=invalid-name
+def reset_output() -> None:
+    global _outputs
+    _outputs = {}
 
 
 class _FakeCompletedProcess:
@@ -62,11 +68,11 @@ class _FakeCompletedProcess:
 
 
 def add_output(*args: Any, **kwargs: Any) -> None:
-    stdout_output = kwargs.pop('stdout_output')
-    stderr_output = kwargs.pop('stderr_output')
+    stdout_output = kwargs.pop('stdout_output', None)
+    stderr_output = kwargs.pop('stderr_output', None)
     returncode = kwargs.pop('returncode', 0)
     assert isinstance(returncode, int), 'returncode must be an integer'
-    raise_cpe = kwargs.pop('raise', False)
+    raise_ = kwargs.pop('raise_', False)
     raise_cls = kwargs.pop('raise_cls', sp.CalledProcessError)
     raise_message = kwargs.pop('raise_message', 'test exception')
     cls: Union[Type[io.StringIO], Type[io.BytesIO]] = io.StringIO
@@ -79,14 +85,13 @@ def add_output(*args: Any, **kwargs: Any) -> None:
                 'stderr_output and stdout_ouptut must be of the same type')
         cls = io.BytesIO
     key = _make_key(*args, **kwargs)
-    if not raise_cpe:
+    if not raise_:
         _outputs[key] = _FakeCompletedProcess(cls, stdout_output,
                                               stderr_output, returncode, *args,
                                               **kwargs)
     else:
         if raise_cls == sp.CalledProcessError:
-            exc = sp.CalledProcessError(returncode or 255, args[0],
+            _outputs[key] = sp.CalledProcessError(returncode or 255, args[0],
                                         stdout_output, stderr_output)
-            _outputs[key] = exc
         else:
             _outputs[key] = raise_cls(raise_message)
