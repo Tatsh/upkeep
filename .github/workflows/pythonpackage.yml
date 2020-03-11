@@ -29,8 +29,8 @@ jobs:
         pip install mypy pylint pylint-quotes pytest pytest-cov coveralls pytest-mock
     - name: Lint with mypy
       run: mypy .
-    #- name: Lint with pylint
-    #  run: pylint *.py source/conf.py tests/*.py
+    - name: Lint with pylint
+      run: pylint *.py source/conf.py tests/*.py
     - name: Tests
       env:
         COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}

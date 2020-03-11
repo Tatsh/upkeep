@@ -1,6 +1,5 @@
 # pylint: disable=too-few-public-methods
 from typing import Any, Dict, Optional, Tuple, Type, Union
-from unittest.mock import patch
 import io
 import json
 import subprocess as sp
@@ -9,7 +8,7 @@ from typing_extensions import overload
 
 __all__ = ('add_output', 'get_output')
 
-_outputs: Dict[Tuple[Any, ...], Any] = {}
+_outputs: Dict[Tuple[Any, ...], Any] = {}  # pylint: disable=invalid-name
 
 
 def _make_key(*args: Any, **kwargs: Any) -> Any:
@@ -28,7 +27,7 @@ def get_output(*args: Any, **kwargs: Any) -> Any:
 
 
 def reset_output() -> None:
-    global _outputs
+    global _outputs  # pylint: disable=global-statement,invalid-name
     _outputs = {}
 
 
@@ -92,6 +91,6 @@ def add_output(*args: Any, **kwargs: Any) -> None:
     else:
         if raise_cls == sp.CalledProcessError:
             _outputs[key] = sp.CalledProcessError(returncode or 255, args[0],
-                                        stdout_output, stderr_output)
+                                                  stdout_output, stderr_output)
         else:
             _outputs[key] = raise_cls(raise_message)
