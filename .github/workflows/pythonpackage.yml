@@ -28,6 +28,6 @@ jobs:
         pip install -e .
         pip install mypy pylint pylint-quotes
     - name: Lint with mypy
-      run: mypy upkeep.py source/conf.py
+      run: mypy upkeep.py source/conf.py tests/
     - name: Lint with pylint
-      run: pylint *.py source/conf.py
+      run: pylint *.py source/conf.py tests/*.py
