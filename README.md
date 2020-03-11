@@ -1,6 +1,7 @@
 # Easier Gentoo system maintenance
 
 ![Python package](https://github.com/Tatsh/upkeep/workflows/Python%20package/badge.svg)
+[![Coverage Status](https://coveralls.io/repos/github/Tatsh/upkeep/badge.svg?branch=master)](https://coveralls.io/github/Tatsh/upkeep?branch=master)
 
 This is a set of commands to simplify maintaining a Gentoo system.
 
