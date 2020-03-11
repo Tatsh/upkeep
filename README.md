@@ -1,5 +1,7 @@
 # Easier Gentoo system maintenance
 
+![Python package](https://github.com/Tatsh/upkeep/workflows/Python%20package/badge.svg)
+
 This is a set of commands to simplify maintaining a Gentoo system.
 
 ## esync
