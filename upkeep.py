@@ -2,7 +2,7 @@ from contextlib import ExitStack
 from functools import lru_cache, wraps
 from multiprocessing import cpu_count
 from os import chdir, environ, umask as set_umask
-from os.path import basename, isfile, realpath
+from os.path import basename, isfile, join as path_join, realpath
 from pathlib import Path
 from shlex import quote
 from typing import Any, Callable, Dict, Optional, Tuple, cast
@@ -10,6 +10,7 @@ import argparse
 import gzip
 import logging
 import re
+import shutil
 import subprocess as sp
 import sys
 
@@ -65,6 +66,7 @@ def graceful_interrupt(_func: Optional[AnyCallable] = None) -> AnyCallable:
             except KeyboardInterrupt:
                 print('Interrupted by user', file=sys.stderr)
                 return 1
+
         return inner
 
     if not _func:
@@ -72,7 +74,8 @@ def graceful_interrupt(_func: Optional[AnyCallable] = None) -> AnyCallable:
     return decorator_graceful(_func)
 
 
-def umask(_func: Optional[AnyCallable] = None, *,
+def umask(_func: Optional[AnyCallable] = None,
+          *,
           new_umask: int) -> AnyCallable:
     """Restores prior umask after calling the decorated function."""
     def decorator_umask(func: AnyCallable) -> AnyCallable:
@@ -180,7 +183,6 @@ def ecleans() -> int:
     return sp.run(['rm', '-fR'] +  # pylint: disable=subprocess-run-check
                   list(map(str,
                            Path('/var/tmp/portage').glob('*')))).returncode
-
 
 
 @graceful_interrupt
@@ -402,31 +404,109 @@ def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
         log.error('STDERR: %s', e.stderr)
         return e.returncode
 
-    args = ['grub2-mkconfig', '-o', GRUB_CFG]
     try:
-        return sp.run(args,
-                      check=True,
-                      encoding='utf-8',
-                      env=env,
-                      stdout=sp.PIPE,
-                      stderr=sp.PIPE).returncode
-    except (sp.CalledProcessError, FileNotFoundError):
-        args[0] = 'grub-mkconfig'
+        sp.run(('eix', '-I', '-e', 'grub'),
+               check=True,
+               env=env,
+               stdout=sp.PIPE,
+               stderr=sp.PIPE)
+        has_grub = True
+    except sp.CalledProcessError:
+        has_grub = False
+
+    if has_grub:
+        args = ['grub2-mkconfig', '-o', GRUB_CFG]
         try:
             return sp.run(args,
                           check=True,
-                          env=env,
                           encoding='utf-8',
+                          env=env,
                           stdout=sp.PIPE,
                           stderr=sp.PIPE).returncode
-        except sp.CalledProcessError as e:
-            log.error('Failed!')
-            log.error('STDOUT: %s', e.stdout)
-            log.error('STDERR: %s', e.stderr)
-            return e.returncode
+        except (sp.CalledProcessError, FileNotFoundError):
+            args[0] = 'grub-mkconfig'
+            try:
+                return sp.run(args,
+                              check=True,
+                              env=env,
+                              encoding='utf-8',
+                              stdout=sp.PIPE,
+                              stderr=sp.PIPE).returncode
+            except sp.CalledProcessError as e:
+                log.error('Failed!')
+                log.error('STDOUT: %s', e.stdout)
+                log.error('STDERR: %s', e.stderr)
+                return e.returncode
+            raise RuntimeError()
 
-    raise RuntimeError('Should not reach here (after attempting to run '
-                       'grub2?-mkconfig)')
+    # systemd-boot
+    esp_path = sp.run(('bootctl', '-p'),
+                      check=True,
+                      env=env,
+                      stdout=sp.PIPE,
+                      encoding='utf-8').stdout
+    if not esp_path:
+        log.warning(
+            '`bootctl -p` returned empty string. Not installing new kernel'
+        )
+        return 1
+    kernel_location = path_join(esp_path, 'gentoo')
+    entries_path = path_join(esp_path, 'loader', 'entries')
+    gentoo_conf = path_join(entries_path, 'gentoo.conf')
+    loader_conf = path_join(esp_path, 'loader', 'loader.conf')
+    with open('include/generated/autoconf.h', 'r') as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line.startswith('# Linux/') and line.endswith(
+                    ' Kernel Configuration'):
+                kernel_version = line.split(' ')[2]
+                break
+    if not kernel_version:
+        raise RuntimeError('Failed to detect Linux verison')
+    rd_filename = f'initramfs-{kernel_version}.img'
+    rd_path = path_join('/boot', rd_filename)
+    has_rd = isfile(rd_path)
+    for path in Path('/boot').glob(f'*{kernel_version}*'):
+        shutil.move(path.name, path_join(kernel_location, path.name))
+    with open(gentoo_conf, 'w+') as f:
+        f.write('title Gentoo\n')
+        f.write('linux /gentoo/{kernel_filename}\n')
+        if isfile('/boot/intel-uc.img'):
+            shutil.copyfile('/boot/intel-uc.img',
+                            path_join(kernel_location, 'intel_uc.img'))
+            f.write('initrd /gentoo/intel-uc.img\n')
+        if has_rd:
+            f.write(f'initrd /gentoo/{rd_filename}\n')
+    has_gentoo_default = False
+    lines = []
+    with open(loader_conf, 'r') as f:
+        for line in f.readlines():
+            if 'default gentoo*' in line:
+                has_gentoo_default = True
+            lines.append(line)
+    if not has_gentoo_default:
+        with open(loader_conf, 'w+') as f:
+            for line in lines:
+                f.write(line)
+            f.write('default gentoo*\n')
+    sp.run(('bootctl', 'update'),
+           check=True,
+           stdout=sp.PIPE,
+           stderr=sp.PIPE,
+           encoding='utf-8')
+    for line in sp.run(('bootctl', 'status'),
+                       check=True,
+                       env=env,
+                       stdout=sp.PIPE,
+                       stderr=sp.PIPE,
+                       encoding='utf-8').stdout.split('\n'):
+        if 'Secure Boot: enabled' in line:
+            log.info('You appear to have Secure Boot enabled. Make sure '
+                     'you sign your boot loader and your kernel (which '
+                     'also must have EFI stub and its command line '
+                     'built-in) before rebooting.')
+            break
+    return 0
 
 
 def upgrade_kernel(num_cpus: Optional[int] = None) -> int:
