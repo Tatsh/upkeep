@@ -23,6 +23,21 @@ __all__ = (
     'upgrade_kernel_command',
 )
 
+HEAVY_PACKAGES = (
+    'sys-devel/gcc',
+    'sys-devel/clang',
+    'www-client/chromium',
+    'www-client/firefox',
+    'sys-devel/llvm',
+    'app-office/libreoffice',
+    'dev-qt/qtwebengine',
+    'net-libs/webkit-gtk',
+    'kde-frameworks/kdewebkit',
+    'dev-qt/qtwebkit',
+    'mail-client/thunderbird',
+    'dev-java/icedtea',
+)
+
 
 class KernelConfigError(Exception):
     pass
@@ -37,8 +52,7 @@ SPECIAL_ENV = ('USE', 'HOME', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG',
 AnyCallable = Callable[..., Any]
 
 
-def umask(_func: Optional[AnyCallable] = None,
-          *,
+def umask(_func: Optional[AnyCallable] = None, *,
           new_umask: int) -> AnyCallable:
     """Restores prior umask after calling the decorated function."""
     def decorator_umask(func: AnyCallable) -> AnyCallable:
@@ -159,6 +173,10 @@ def emerges() -> int:
     - ``systemctl daemon-reexec`` if applicable
     - upgrade kernel
 
+    In the second step, if ``-H`` is not passed, heavier packages like Clang
+    and Chromium are built separately, to hopefully allow a machine to remain
+    responsive while building packages.
+
     This function understands the following CLI flags:
 
     - ``-a`` / ``--ask``: Pass ``--ask`` to the ``emerge @world`` command
@@ -166,7 +184,9 @@ def emerges() -> int:
     - ``-P`` / ``--no-preserved-rebuild``: Skip ``emerge @preserved-rebuild``
       step
     - ``-D`` / ``--no-daemon-reexec``: Skip ``systemctl daemon-reexec`` step
-    - ``-U`` / ``--no-upgrade-kernel``: Skip upgrading the kernel.
+    - ``-U`` / ``--no-upgrade-kernel``: Skip upgrading the kernel
+    - ``-H`` / ``--allow-heavy``: Allow heavy packages to be built with the
+      rest of the upgrades.
 
     Returns
     -------
@@ -179,11 +199,31 @@ def emerges() -> int:
     """
     # pylint: enable=line-too-long
     parser = argparse.ArgumentParser(__name__)
-    parser.add_argument('-a', '--ask', action='store_true')
-    parser.add_argument('-L', '--no-live-rebuild', action='store_true')
-    parser.add_argument('-P', '--no-preserved-rebuild', action='store_true')
-    parser.add_argument('-D', '--no-daemon-reexec', action='store_true')
-    parser.add_argument('-U', '--no-upgrade-kernel', action='store_true')
+    parser.add_argument('-a',
+                        '--ask',
+                        action='store_true',
+                        help='Pass --ask to emerge command')
+    parser.add_argument('-L',
+                        '--no-live-rebuild',
+                        action='store_true',
+                        help='Skip emerge @live-rebuild step')
+    parser.add_argument('-P',
+                        '--no-preserved-rebuild',
+                        action='store_true',
+                        help='Skip @preserved-ebuild step')
+    parser.add_argument(
+        '-D',
+        '--no-daemon-reexec',
+        action='store_true',
+        help='Do not run systemctl daemon-reexec (on systemd systems)')
+    parser.add_argument('-U',
+                        '--no-upgrade-kernel',
+                        action='store_true',
+                        help='Do not attempt to upgrade kernel')
+    parser.add_argument('-H',
+                        '--allow-heavy',
+                        action='store_true',
+                        help='Allow heavy packages to be built with the rest')
     args = parser.parse_args()
 
     live_rebuild = not args.no_live_rebuild
@@ -196,12 +236,24 @@ def emerges() -> int:
     sp.run(('emerge', '--oneshot', '--quiet', '--update', 'portage'),
            check=True,
            env=env)
+    if not args.allow_heavy:
+        ask_arg += [f'--exclude={name}' for name in HEAVY_PACKAGES]
     sp.run([
         'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
         '--update', '--deep', '--newuse', '@world'
     ] + ask_arg,
            check=True,
            env=env)
+    if not args.allow_heavy:
+        for name in HEAVY_PACKAGES:
+            try:
+                sp.run(('eix', '-I', '-e', name), check=True, env=env)
+            except sp.CalledProcessError:
+                continue
+            sp.run(('emerge', '--oneshot', '--keep-going', '--tree', '--quiet',
+                    '--update', '--deep', '--newuse', name),
+                   check=True,
+                   env=env)
 
     if live_rebuild:
         sp.run(('emerge', '--keep-going', '--quiet', '@live-rebuild'),
