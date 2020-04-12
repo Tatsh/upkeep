@@ -52,6 +52,26 @@ SPECIAL_ENV = ('USE', 'HOME', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG',
 AnyCallable = Callable[..., Any]
 
 
+def graceful_interrupt(_func: Optional[AnyCallable] = None) -> AnyCallable:
+    """
+    Handles KeyboardInterrupt gracefully since stack trace is usually not
+    needed for this event.
+    """
+    def decorator_graceful(func: AnyCallable) -> AnyCallable:
+        @wraps(func)
+        def inner(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return func(*args, **kwargs)
+            except KeyboardInterrupt:
+                print('Interrupted by user', file=sys.stderr)
+                return 1
+        return inner
+
+    if not _func:
+        return decorator_graceful
+    return decorator_graceful(_func)
+
+
 def umask(_func: Optional[AnyCallable] = None, *,
           new_umask: int) -> AnyCallable:
     """Restores prior umask after calling the decorated function."""
@@ -93,6 +113,7 @@ def _minenv() -> Dict[str, str]:
     return env
 
 
+@graceful_interrupt
 def esync() -> int:
     """
     Syncs Portage sources. Requires ``app-portage/eix`` to be installed.
@@ -134,6 +155,7 @@ def esync() -> int:
     return sp.run(('eix-sync', '-qH'), env=env).returncode  # pylint: disable=subprocess-run-check
 
 
+@graceful_interrupt
 @umask(new_umask=0o022)
 def ecleans() -> int:
     """
@@ -160,6 +182,8 @@ def ecleans() -> int:
                            Path('/var/tmp/portage').glob('*')))).returncode
 
 
+
+@graceful_interrupt
 @umask(new_umask=0o022)
 def emerges() -> int:
     # pylint: disable=line-too-long
@@ -482,6 +506,7 @@ def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
     callable
         Callable that takes no parameters and returns an integer.
     """
+    @graceful_interrupt
     @umask(new_umask=0o022)
     def ret() -> int:
         parser = argparse.ArgumentParser(__name__)
@@ -491,7 +516,8 @@ def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
                             type=int)
         try:
             return func(parser.parse_args().number_of_jobs)
-        except KernelConfigError:
+        except KernelConfigError as e:
+            print(str(e), file=sys.stderr)
             return 1
 
     return cast(Callable[[], int], ret)
