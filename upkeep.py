@@ -2,7 +2,7 @@ from contextlib import ExitStack
 from functools import lru_cache, wraps
 from multiprocessing import cpu_count
 from os import chdir, environ, umask as set_umask
-from os.path import basename, isfile, join as path_join, realpath
+from os.path import basename, expanduser, isfile, join as path_join, realpath
 from pathlib import Path
 from shlex import quote
 from typing import Any, Callable, Dict, Optional, Tuple, cast
@@ -45,6 +45,7 @@ class KernelConfigError(Exception):
 
 
 CONFIG_GZ = '/proc/config.gz'
+DEFAULT_USER_CONFIG = expanduser('~/.config/upkeeprc')
 GRUB_CFG = '/boot/grub/grub.cfg'
 KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
