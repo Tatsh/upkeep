@@ -222,8 +222,7 @@ def emerges() -> int:
       step
     - ``-D`` / ``--no-daemon-reexec``: Skip ``systemctl daemon-reexec`` step
     - ``-U`` / ``--no-upgrade-kernel``: Skip upgrading the kernel
-    - ``-H`` / ``--allow-heavy``: Allow heavy packages to be built with the
-      rest of the upgrades.
+    - ``-H`` / ``--split-heavy``: Split heavy packages to be built separately.
 
     Returns
     -------
@@ -258,9 +257,9 @@ def emerges() -> int:
                         action='store_true',
                         help='Do not attempt to upgrade kernel')
     parser.add_argument('-H',
-                        '--allow-heavy',
+                        '--split-heavy',
                         action='store_true',
-                        help='Allow heavy packages to be built with the rest')
+                        help='Split heavy packages to be built separately')
     parser.add_argument(
         '-c',
         '--config',
@@ -278,7 +277,7 @@ def emerges() -> int:
     sp.run(('emerge', '--oneshot', '--quiet', '--update', 'portage'),
            check=True,
            env=env)
-    if not args.allow_heavy:
+    if args.split_heavy:
         ask_arg += [f'--exclude={name}' for name in HEAVY_PACKAGES]
     sp.run([
         'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
@@ -286,7 +285,7 @@ def emerges() -> int:
     ] + ask_arg,
            check=True,
            env=env)
-    if not args.allow_heavy:
+    if args.split_heavy:
         for name in HEAVY_PACKAGES:
             try:
                 sp.run(('eix', '-I', '-e', name), check=True, env=env)
