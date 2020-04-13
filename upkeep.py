@@ -2,7 +2,7 @@ from configparser import ConfigParser
 from contextlib import ExitStack
 from functools import lru_cache, wraps
 from multiprocessing import cpu_count
-from os import chdir, close, environ, makedirs, umask as set_umask
+from os import chdir, close, environ, makedirs, umask as set_umask, unlink
 from os.path import basename, expanduser, isfile, join as path_join, realpath
 from pathlib import Path
 from shlex import quote
@@ -416,6 +416,9 @@ def _maybe_sign_exes(esp_path: str,
                        check=True,
                        stderr=sp.PIPE,
                        stdout=sp.PIPE)
+            for input_file, _ in files_to_sign:
+                if isfile(input_file):
+                    unlink(input_file)
 
 
 def _manage_loader_conf(loader_conf: Path,
