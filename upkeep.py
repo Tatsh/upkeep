@@ -1,10 +1,12 @@
+from configparser import ConfigParser
 from contextlib import ExitStack
 from functools import lru_cache, wraps
 from multiprocessing import cpu_count
-from os import chdir, environ, umask as set_umask
+from os import chdir, close, environ, makedirs, umask as set_umask
 from os.path import basename, expanduser, isfile, join as path_join, realpath
 from pathlib import Path
 from shlex import quote
+from tempfile import mkstemp
 from typing import Any, Callable, Dict, Optional, Tuple, cast
 import argparse
 import gzip
@@ -47,11 +49,19 @@ class KernelConfigError(Exception):
 CONFIG_GZ = '/proc/config.gz'
 DEFAULT_USER_CONFIG = expanduser('~/.config/upkeeprc')
 GRUB_CFG = '/boot/grub/grub.cfg'
+INTEL_UC = '/boot/intel-uc.img'
 KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV = ('USE', 'HOME', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG',
                'PATH', 'SHELL', 'CONFIG_PROTECT', 'TERM')
 AnyCallable = Callable[..., Any]
+
+
+@lru_cache()
+def _config(path: str = DEFAULT_USER_CONFIG) -> ConfigParser:
+    config = ConfigParser()
+    config.read(path)
+    return config
 
 
 def graceful_interrupt(_func: Optional[AnyCallable] = None) -> AnyCallable:
@@ -251,6 +261,11 @@ def emerges() -> int:
                         '--allow-heavy',
                         action='store_true',
                         help='Allow heavy packages to be built with the rest')
+    parser.add_argument(
+        '-c',
+        '--config',
+        default=DEFAULT_USER_CONFIG,
+        help=f'Configuration file. Defaults to {DEFAULT_USER_CONFIG}')
     args = parser.parse_args()
 
     live_rebuild = not args.no_live_rebuild
@@ -332,62 +347,116 @@ def _update_grub() -> int:
         raise RuntimeError()
 
 
-def _update_systemd_boot() -> int:
+def _update_systemd_boot(config_path: Optional[str] = None) -> int:
     env = _minenv()
     log = _setup_logging_stdout()
     esp_path = sp.run(('bootctl', '-p'),
                       check=True,
                       env=env,
                       stdout=sp.PIPE,
-                      encoding='utf-8').stdout
+                      encoding='utf-8').stdout.split('\n')[0].strip()
     if not esp_path:
         log.warning(
             '`bootctl -p` returned empty string. Not installing new kernel')
         return 1
+    try:
+        sp.run(('bootctl', 'update'),
+               check=True,
+               stdout=sp.PIPE,
+               stderr=sp.PIPE)
+    except sp.CalledProcessError:
+        try:
+            sp.run(('bootctl', 'install'),
+                   check=True,
+                   encoding='utf-8',
+                   stdout=sp.PIPE,
+                   stderr=sp.PIPE)
+        except sp.CalledProcessError as e:
+            if 'Failed to test system token validity' not in e.stderr:
+                raise e
     kernel_location = path_join(esp_path, 'gentoo')
+    if Path(kernel_location).exists():
+        shutil.rmtree(kernel_location)
     entries_path = path_join(esp_path, 'loader', 'entries')
-    gentoo_conf = path_join(entries_path, 'gentoo.conf')
-    loader_conf = path_join(esp_path, 'loader', 'loader.conf')
+    makedirs(kernel_location, 0o755, exist_ok=True)
+    makedirs(entries_path, 0o755, exist_ok=True)
+    gentoo_conf = Path(path_join(entries_path, 'gentoo.conf'))
+    loader_conf = Path(path_join(esp_path, 'loader', 'loader.conf'))
+    kernel_version = None
     with open('include/generated/autoconf.h', 'r') as f:
         for line in f.readlines():
             line = line.strip()
-            if line.startswith('# Linux/') and line.endswith(
+            if line.startswith('* Linux/') and line.endswith(
                     ' Kernel Configuration'):
                 kernel_version = line.split(' ')[2]
                 break
     if not kernel_version:
         raise RuntimeError('Failed to detect Linux version')
-    rd_filename = f'initramfs-{kernel_version}.img'
+    suffix = ''
+    with open('.config', 'r') as f:
+        for line in f.readlines():
+            if line.startswith('CONFIG_LOCALVERSION='):
+                tmp_suffix = line.strip().split('=')[1][1:-1].strip()
+                if tmp_suffix:
+                    suffix = tmp_suffix
+    rd_filename = f'initramfs-{kernel_version}{suffix}.img'
     rd_path = path_join('/boot', rd_filename)
     has_rd = isfile(rd_path)
+    kernel_filename = kernel_path = None
     for path in Path('/boot').glob(f'*{kernel_version}*'):
-        shutil.move(path.name, path_join(kernel_location, path.name))
-    with open(gentoo_conf, 'w+') as f:
+        with path.open('rb') as fb:
+            if fb.read(2) == b'MZ' and not kernel_filename:
+                kernel_filename = basename(path.name)
+                kernel_path = path
+            else:
+                shutil.copy(str(path), path_join(kernel_location, path.name))
+    if not kernel_filename or not kernel_path:
+        raise RuntimeError('Failed to find Linux image')
+    with gentoo_conf.open('w+') as f:
         f.write('title Gentoo\n')
-        f.write('linux /gentoo/{kernel_filename}\n')
-        if isfile('/boot/intel-uc.img'):
-            shutil.copyfile('/boot/intel-uc.img',
-                            path_join(kernel_location, 'intel_uc.img'))
+        f.write(f'linux /gentoo/{kernel_filename}\n')
+        if isfile(INTEL_UC):
+            shutil.copyfile(INTEL_UC,
+                            path_join(kernel_location, basename(INTEL_UC)))
             f.write('initrd /gentoo/intel-uc.img\n')
         if has_rd:
             f.write(f'initrd /gentoo/{rd_filename}\n')
     has_gentoo_default = False
     lines = []
-    with open(loader_conf, 'r') as f:
+    config = None
+    timeout = None
+    if config_path:
+        config = _config(config_path)
+        timeout = config.get('systemd-boot', 'timeout', fallback='3')
+    with loader_conf.open('r') as f:
         for line in f.readlines():
             if 'default gentoo*' in line:
                 has_gentoo_default = True
+            if line.startswith('default ') or (line.startswith('timeout ')
+                                               and config
+                                               and timeout is not None):
+                continue
             lines.append(line)
     if not has_gentoo_default:
-        with open(loader_conf, 'w+') as f:
+        with loader_conf.open('w+') as f:
             for line in lines:
                 f.write(line)
             f.write('default gentoo*\n')
-    sp.run(('bootctl', 'update'),
-           check=True,
-           stdout=sp.PIPE,
-           stderr=sp.PIPE,
-           encoding='utf-8')
+            if timeout:
+                f.write(f'timeout {timeout}\n')
+    output_bootx64 = path_join(esp_path, 'EFI', 'BOOT', 'BOOTX64.EFI')
+    output_systemd_bootx64 = path_join(esp_path, 'EFI', 'systemd',
+                                       'systemd-bootx64.efi')
+    fd, tmp_kernel = mkstemp()
+    close(fd)
+    fd, tmp_bootx64 = mkstemp()
+    close(fd)
+    shutil.copy(output_bootx64, tmp_bootx64)
+    shutil.copy(str(kernel_path), tmp_kernel)
+    files_to_sign = ((tmp_bootx64, output_bootx64), (tmp_bootx64,
+                                                     output_systemd_bootx64),
+                     (tmp_kernel, path_join(esp_path, 'gentoo',
+                                            kernel_filename)))
     for line in sp.run(('bootctl', 'status'),
                        check=True,
                        env=env,
@@ -395,15 +464,37 @@ def _update_systemd_boot() -> int:
                        stderr=sp.PIPE,
                        encoding='utf-8').stdout.split('\n'):
         if 'Secure Boot: enabled' in line:
-            log.info('You appear to have Secure Boot enabled. Make sure '
-                     'you sign your boot loader and your kernel (which '
-                     'also must have EFI stub and its command line '
-                     'built-in) before rebooting.')
-            break
+            db_key = db_crt = None
+            if config:
+                db_key = config.get('systemd-boot', 'sign-key', fallback='')
+                db_crt = config.get('systemd-boot', 'sign-cert', fallback='')
+            if not db_key or not db_crt:
+                shutil.copy(tmp_kernel,
+                            path_join(esp_path, 'gentoo', kernel_filename))
+                log.info('You appear to have Secure Boot enabled. Make sure '
+                         'you sign your boot loader and your kernel (which '
+                         'also must have EFI stub and its command line '
+                         'built-in) before rebooting.')
+                break
+            for input_file, output_path in files_to_sign:
+                sp.run(('sbsign', '--key', db_key, '--cert', db_crt,
+                        input_file, '--output', output_path),
+                       check=True,
+                       stderr=sp.PIPE,
+                       stdout=sp.PIPE)
+                sp.run(('sbverify', '--cert', db_crt, output_path),
+                       check=True,
+                       stderr=sp.PIPE,
+                       stdout=sp.PIPE)
+    # Clean up /boot
+    for path in Path('/boot').glob(f'*{kernel_version}*'):
+        path.unlink()
+
     return 0
 
 
-def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
+def rebuild_kernel(num_cpus: Optional[int] = None,
+                   config_path: Optional[str] = None) -> int:
     # pylint: disable=line-too-long
     """
     Rebuilds the kernel.
@@ -516,10 +607,11 @@ def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
 
     if has_grub:
         return _update_grub()
-    return _update_systemd_boot()
+    return _update_systemd_boot(config_path)
 
 
-def upgrade_kernel(num_cpus: Optional[int] = None) -> int:
+def upgrade_kernel(num_cpus: Optional[int] = None,
+                   config_path: Optional[str] = None) -> int:
     """
     Upgrades the kernel.
 
@@ -579,10 +671,12 @@ def upgrade_kernel(num_cpus: Optional[int] = None) -> int:
         log.info('Unexpected number of lines. Not updating kernel.')
         return 1
     sp.run(('eselect', 'kernel', 'set', str(unselected)), check=True, env=env)
-    return rebuild_kernel(num_cpus)
+    return rebuild_kernel(num_cpus, config_path)
 
 
-def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
+def kernel_command(
+    func: Callable[[Optional[int], Optional[str]], int]
+) -> Callable[[], int]:
     """
     CLI entry point for the ``upgrade-kernel`` and ``rebuild-kernel`` commands.
 
@@ -603,9 +697,16 @@ def kernel_command(func: Callable[[Optional[int]], int]) -> Callable[[], int]:
         parser.add_argument('-j',
                             '--number-of-jobs',
                             default=cpu_count() + 1,
+                            help='Number of tasks to run simultaneously',
                             type=int)
+        parser.add_argument(
+            '-c',
+            '--config',
+            default=DEFAULT_USER_CONFIG,
+            help=f'Configuration file. Defaults to {DEFAULT_USER_CONFIG}')
+        args = parser.parse_args()
         try:
-            return func(parser.parse_args().number_of_jobs)
+            return func(args.number_of_jobs, args.config)
         except KernelConfigError as e:
             print(str(e), file=sys.stderr)
             return 1
