@@ -304,6 +304,105 @@ def emerges() -> int:
     return 0
 
 
+def _update_grub() -> int:
+    log = _setup_logging_stdout()
+    env = _minenv()
+    args = ['grub2-mkconfig', '-o', GRUB_CFG]
+    try:
+        return sp.run(args,
+                      check=True,
+                      encoding='utf-8',
+                      env=env,
+                      stdout=sp.PIPE,
+                      stderr=sp.PIPE).returncode
+    except (sp.CalledProcessError, FileNotFoundError):
+        args[0] = 'grub-mkconfig'
+        try:
+            return sp.run(args,
+                          check=True,
+                          env=env,
+                          encoding='utf-8',
+                          stdout=sp.PIPE,
+                          stderr=sp.PIPE).returncode
+        except sp.CalledProcessError as e:
+            log.error('Failed!')
+            log.error('STDOUT: %s', e.stdout)
+            log.error('STDERR: %s', e.stderr)
+            return e.returncode
+        raise RuntimeError()
+
+
+def _update_systemd_boot() -> int:
+    env = _minenv()
+    log = _setup_logging_stdout()
+    esp_path = sp.run(('bootctl', '-p'),
+                      check=True,
+                      env=env,
+                      stdout=sp.PIPE,
+                      encoding='utf-8').stdout
+    if not esp_path:
+        log.warning(
+            '`bootctl -p` returned empty string. Not installing new kernel')
+        return 1
+    kernel_location = path_join(esp_path, 'gentoo')
+    entries_path = path_join(esp_path, 'loader', 'entries')
+    gentoo_conf = path_join(entries_path, 'gentoo.conf')
+    loader_conf = path_join(esp_path, 'loader', 'loader.conf')
+    with open('include/generated/autoconf.h', 'r') as f:
+        for line in f.readlines():
+            line = line.strip()
+            if line.startswith('# Linux/') and line.endswith(
+                    ' Kernel Configuration'):
+                kernel_version = line.split(' ')[2]
+                break
+    if not kernel_version:
+        raise RuntimeError('Failed to detect Linux version')
+    rd_filename = f'initramfs-{kernel_version}.img'
+    rd_path = path_join('/boot', rd_filename)
+    has_rd = isfile(rd_path)
+    for path in Path('/boot').glob(f'*{kernel_version}*'):
+        shutil.move(path.name, path_join(kernel_location, path.name))
+    with open(gentoo_conf, 'w+') as f:
+        f.write('title Gentoo\n')
+        f.write('linux /gentoo/{kernel_filename}\n')
+        if isfile('/boot/intel-uc.img'):
+            shutil.copyfile('/boot/intel-uc.img',
+                            path_join(kernel_location, 'intel_uc.img'))
+            f.write('initrd /gentoo/intel-uc.img\n')
+        if has_rd:
+            f.write(f'initrd /gentoo/{rd_filename}\n')
+    has_gentoo_default = False
+    lines = []
+    with open(loader_conf, 'r') as f:
+        for line in f.readlines():
+            if 'default gentoo*' in line:
+                has_gentoo_default = True
+            lines.append(line)
+    if not has_gentoo_default:
+        with open(loader_conf, 'w+') as f:
+            for line in lines:
+                f.write(line)
+            f.write('default gentoo*\n')
+    sp.run(('bootctl', 'update'),
+           check=True,
+           stdout=sp.PIPE,
+           stderr=sp.PIPE,
+           encoding='utf-8')
+    for line in sp.run(('bootctl', 'status'),
+                       check=True,
+                       env=env,
+                       stdout=sp.PIPE,
+                       stderr=sp.PIPE,
+                       encoding='utf-8').stdout.split('\n'):
+        if 'Secure Boot: enabled' in line:
+            log.info('You appear to have Secure Boot enabled. Make sure '
+                     'you sign your boot loader and your kernel (which '
+                     'also must have EFI stub and its command line '
+                     'built-in) before rebooting.')
+            break
+    return 0
+
+
 def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
     # pylint: disable=line-too-long
     """
@@ -416,98 +515,8 @@ def rebuild_kernel(num_cpus: Optional[int] = None) -> int:
         has_grub = False
 
     if has_grub:
-        args = ['grub2-mkconfig', '-o', GRUB_CFG]
-        try:
-            return sp.run(args,
-                          check=True,
-                          encoding='utf-8',
-                          env=env,
-                          stdout=sp.PIPE,
-                          stderr=sp.PIPE).returncode
-        except (sp.CalledProcessError, FileNotFoundError):
-            args[0] = 'grub-mkconfig'
-            try:
-                return sp.run(args,
-                              check=True,
-                              env=env,
-                              encoding='utf-8',
-                              stdout=sp.PIPE,
-                              stderr=sp.PIPE).returncode
-            except sp.CalledProcessError as e:
-                log.error('Failed!')
-                log.error('STDOUT: %s', e.stdout)
-                log.error('STDERR: %s', e.stderr)
-                return e.returncode
-            raise RuntimeError()
-
-    # systemd-boot
-    esp_path = sp.run(('bootctl', '-p'),
-                      check=True,
-                      env=env,
-                      stdout=sp.PIPE,
-                      encoding='utf-8').stdout
-    if not esp_path:
-        log.warning(
-            '`bootctl -p` returned empty string. Not installing new kernel'
-        )
-        return 1
-    kernel_location = path_join(esp_path, 'gentoo')
-    entries_path = path_join(esp_path, 'loader', 'entries')
-    gentoo_conf = path_join(entries_path, 'gentoo.conf')
-    loader_conf = path_join(esp_path, 'loader', 'loader.conf')
-    with open('include/generated/autoconf.h', 'r') as f:
-        for line in f.readlines():
-            line = line.strip()
-            if line.startswith('# Linux/') and line.endswith(
-                    ' Kernel Configuration'):
-                kernel_version = line.split(' ')[2]
-                break
-    if not kernel_version:
-        raise RuntimeError('Failed to detect Linux verison')
-    rd_filename = f'initramfs-{kernel_version}.img'
-    rd_path = path_join('/boot', rd_filename)
-    has_rd = isfile(rd_path)
-    for path in Path('/boot').glob(f'*{kernel_version}*'):
-        shutil.move(path.name, path_join(kernel_location, path.name))
-    with open(gentoo_conf, 'w+') as f:
-        f.write('title Gentoo\n')
-        f.write('linux /gentoo/{kernel_filename}\n')
-        if isfile('/boot/intel-uc.img'):
-            shutil.copyfile('/boot/intel-uc.img',
-                            path_join(kernel_location, 'intel_uc.img'))
-            f.write('initrd /gentoo/intel-uc.img\n')
-        if has_rd:
-            f.write(f'initrd /gentoo/{rd_filename}\n')
-    has_gentoo_default = False
-    lines = []
-    with open(loader_conf, 'r') as f:
-        for line in f.readlines():
-            if 'default gentoo*' in line:
-                has_gentoo_default = True
-            lines.append(line)
-    if not has_gentoo_default:
-        with open(loader_conf, 'w+') as f:
-            for line in lines:
-                f.write(line)
-            f.write('default gentoo*\n')
-    sp.run(('bootctl', 'update'),
-           check=True,
-           stdout=sp.PIPE,
-           stderr=sp.PIPE,
-           encoding='utf-8')
-    for line in sp.run(('bootctl', 'status'),
-                       check=True,
-                       env=env,
-                       stdout=sp.PIPE,
-                       stderr=sp.PIPE,
-                       encoding='utf-8').stdout.split('\n'):
-        if 'Secure Boot: enabled' in line:
-            log.info('You appear to have Secure Boot enabled. Make sure '
-                     'you sign your boot loader and your kernel (which '
-                     'also must have EFI stub and its command line '
-                     'built-in) before rebooting.')
-            break
-    return 0
+        return _update_grub()
+    return _update_systemd_boot()
 
 
 def upgrade_kernel(num_cpus: Optional[int] = None) -> int:
