@@ -142,7 +142,8 @@ disable=print-statement,
         missing-module-docstring,
         missing-class-docstring,
         missing-function-docstring,
-        no-member
+        no-member,
+        bad-continuation
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -435,7 +436,8 @@ good-names=i,
            n,  # usually an integer,
            fd, # usually a file descriptor int
            T, U, V,  # type args
-           m   # regex match
+           m,   # regex match
+           fb
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=no
