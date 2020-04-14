@@ -22,7 +22,6 @@ class SubprocessMocker:
         try:
             val = self._outputs[key]
         except KeyError:
-            print(f'not found:\n{key}')
             return None
         if isinstance(val, BaseException):
             raise val
