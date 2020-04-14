@@ -94,11 +94,8 @@ def umask(_func: Optional[AnyCallable] = None,
     def decorator_umask(func: AnyCallable) -> AnyCallable:
         @wraps(func)
         def inner(*args: Any, **kwargs: Any) -> Any:
-            old_umask = set_umask(new_umask)
-            try:
-                return func(*args, **kwargs)
-            finally:
-                set_umask(old_umask)
+            set_umask(new_umask)
+            return func(*args, **kwargs)
 
         return inner
 
