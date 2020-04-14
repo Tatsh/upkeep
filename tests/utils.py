@@ -22,8 +22,9 @@ class SubprocessMocker:
         try:
             val = self._outputs[key]
         except KeyError:
+            print(f'not found:\n{key}')
             return None
-        if isinstance(val, Exception):
+        if isinstance(val, BaseException):
             raise val
         return val
 
@@ -110,6 +111,16 @@ class SubprocessMocker:
                         universal_newlines=True,
                         stdout=sp.PIPE,
                         stderr=sp.PIPE,
+                        env=_minenv(),
+                        *args,
+                        **kwargs)
+
+    def add_output4(self, *args, **kwargs) -> None:
+        from upkeep import _minenv
+
+        kwargs.pop('env', None)
+        kwargs.pop('universal_newlines', None)
+        self.add_output(universal_newlines=True,
                         env=_minenv(),
                         *args,
                         **kwargs)
