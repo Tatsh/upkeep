@@ -1,35 +1,28 @@
-from typing import Callable
 from unittest.mock import patch
-import subprocess as sp
 import sys
 
-from upkeep import _minenv, esync
+from upkeep import esync
 
-from .utils import get_output
-
-AddOutput = Callable[..., None]
+from .utils import SubprocessMocker
 
 
-def test_esync_no_eix(add_output: AddOutput) -> None:
-    add_output(('which', 'eix-sync'),
-               raise_=True,
-               stdout=sp.PIPE,
-               check=True,
-               env=_minenv())
+def test_esync_no_eix(sp_mocker: SubprocessMocker) -> None:
+    sp_mocker.add_output3(('which', 'eix-sync'), raise_=True)
     sys.argv = ['esync']
-    with patch('upkeep.sp.run', side_effect=get_output):
+    with patch('upkeep.sp.run', side_effect=sp_mocker.get_output):
         assert esync() == 1
 
 
-def test_esync(add_output: AddOutput) -> None:
-    env = _minenv()
-    add_output(('eix-sync', '-qH'), env=env, returncode=0)
-    add_output(('which', 'layman'),
-               stdout=sp.PIPE,
-               check=True,
-               env=env,
-               returncode=0)
-    add_output(('layman', '-S'), check=True, env=env, raise_=True)
+def test_esync_no_layman(sp_mocker: SubprocessMocker) -> None:
+    sp_mocker.add_output3(('eix-sync', '-qH'), returncode=0)
+    sp_mocker.add_output3(('which', 'layman'), raise_=True)
     sys.argv = ['esync', '-l']
-    with patch('upkeep.sp.run', side_effect=get_output):
-        assert esync() == 0
+    with patch('upkeep.sp.run', side_effect=sp_mocker.get_output):
+        assert esync() == 1
+
+
+def test_esync_eix_sync_failure(sp_mocker: SubprocessMocker):
+    sp_mocker.add_output3(('eix-sync', '-qH'), raise_=True)
+    sys.argv = ['esync']
+    with patch('upkeep.sp.run', side_effect=sp_mocker.get_output):
+        assert esync() == 255
