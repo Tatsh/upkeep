@@ -10,9 +10,14 @@ and this project adheres to
 
 * Added support for managing the kernel booted by systemd-boot. Bootloader
   detection (GRUB or systemd-boot) is automatic.
-* Added support for onfiguration file at `/etc/upkeeprc`. Currently only used
-  for signing EFI executables for use with Secure boot, only when systemd-boot
-  is detected as the system's bootloader.
+* Added support for automatic signing of EFI binaries. To use this feature,
+  `app-crypt/sbsigntools` must be installed and `/etc/upkeeprc` must exist with
+  a format like the following:
+  ```ini
+  [systemd-boot]
+  sign-key = my-db.key
+  sign-cert = my-db.crt
+  ```
 * Added experimental `-H` or `--split-heavy` option to `emerges`. This will
   cause `emerges` to attempt to build *heavier* packages like Chromium
   after the leaner packages are built. This may cause issues if there are two
@@ -32,3 +37,6 @@ and this project adheres to
   * `www-client/firefox`
 * `ecleans` no longer ignores exit codes from the commands it executes.
 * Improved `^C` (Ctrl+C) interruptions to be more user friendly.
+* Added [documentation](https://upkeep.readthedocs.io/en/latest/) to all public
+  functions and commands.
+* Added help text to all command line arguments.
