@@ -9,15 +9,16 @@ from typing_extensions import overload
 __all__ = ('SubprocessMocker', )
 
 
+def _make_key(*args: Any, **kwargs: Any) -> Any:
+    return args + (json.dumps(kwargs, sort_keys=True), )
+
+
 class SubprocessMocker:
     def __init__(self):
         self._outputs: Dict[Tuple[Any, ...], Any] = {}
 
-    def _make_key(self, *args: Any, **kwargs: Any) -> Any:
-        return args + (json.dumps(kwargs, sort_keys=True), )
-
     def get_output(self, *args: Any, **kwargs: Any) -> Any:
-        key = self._make_key(*args, **kwargs)
+        key = _make_key(*args, **kwargs)
         try:
             val = self._outputs[key]
         except KeyError:
@@ -81,7 +82,7 @@ class SubprocessMocker:
                 raise TypeError(
                     'stderr_output and stdout_output must be of the same type')
             cls = io.BytesIO
-        key = self._make_key(*args, **kwargs)
+        key = _make_key(*args, **kwargs)
         if not raise_:
             self._outputs[key] = self._FakeCompletedProcess(
                 cls, stdout_output, stderr_output, returncode, *args, **kwargs)
