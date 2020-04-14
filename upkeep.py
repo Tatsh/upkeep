@@ -3,7 +3,7 @@ from contextlib import ExitStack
 from functools import lru_cache, wraps
 from multiprocessing import cpu_count
 from os import chdir, close, environ, makedirs, umask as set_umask, unlink
-from os.path import basename, expanduser, isfile, join as path_join, realpath
+from os.path import basename, isfile, join as path_join, realpath
 from pathlib import Path
 from shlex import quote
 from subprocess import CompletedProcess
@@ -76,7 +76,8 @@ def graceful_interrupt(_func: Optional[AnyCallable] = None) -> AnyCallable:
             try:
                 return func(*args, **kwargs)
             except KeyboardInterrupt:
-                print('Interrupted by user', file=sys.stderr)
+                log = _setup_logging_stdout()
+                log.info('Interrupted by user')
                 return 1
 
         return inner
@@ -124,7 +125,10 @@ def _check_call(args: Any,
                 text: bool = True,
                 env: Optional[Mapping[str, str]] = None,
                 **kwargs: Any) -> int:
-    return sp.check_call(args, universal_newlines=text, env=env, **kwargs)
+    return sp.check_call(args,
+                         universal_newlines=text,
+                         env=env or _minenv(),
+                         **kwargs)
 
 
 @lru_cache()
@@ -719,7 +723,8 @@ def kernel_command(
         try:
             return func(args.number_of_jobs, args.config)
         except KernelConfigError as e:
-            print(str(e), file=sys.stderr)
+            log = _setup_logging_stdout()
+            log.error('Kernel configuration error: %s', e)
             return 1
 
     return cast(Callable[[], int], ret)
