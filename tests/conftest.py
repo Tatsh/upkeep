@@ -1,13 +1,12 @@
-from typing import Callable, Iterator
+from typing import Iterator
 
 import pytest
 
-from .utils import add_output as add_output_func, reset_output
-
-AddOutput = Callable[..., None]
+from .utils import SubprocessMocker
 
 
 @pytest.fixture
-def add_output() -> Iterator[AddOutput]:
-    yield add_output_func
-    reset_output()
+def sp_mocker() -> Iterator[SubprocessMocker]:
+    m = SubprocessMocker()
+    yield m
+    m.reset_output()
