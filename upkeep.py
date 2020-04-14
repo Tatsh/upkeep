@@ -6,8 +6,9 @@ from os import chdir, close, environ, makedirs, umask as set_umask, unlink
 from os.path import basename, expanduser, isfile, join as path_join, realpath
 from pathlib import Path
 from shlex import quote
+from subprocess import CompletedProcess
 from tempfile import mkstemp
-from typing import Any, Callable, Dict, Optional, Tuple, cast
+from typing import Any, Callable, Dict, Mapping, Optional, Tuple, cast
 import argparse
 import gzip
 import logging
@@ -27,18 +28,18 @@ __all__ = (
 )
 
 HEAVY_PACKAGES = (
-    'sys-devel/gcc',
+    'app-office/libreoffice',
+    'dev-java/icedtea',
+    'dev-qt/qtwebengine',
+    'dev-qt/qtwebkit',
+    'kde-frameworks/kdewebkit',
+    'mail-client/thunderbird',
+    'net-libs/webkit-gtk',
     'sys-devel/clang',
+    'sys-devel/gcc',
+    'sys-devel/llvm',
     'www-client/chromium',
     'www-client/firefox',
-    'sys-devel/llvm',
-    'app-office/libreoffice',
-    'dev-qt/qtwebengine',
-    'net-libs/webkit-gtk',
-    'kde-frameworks/kdewebkit',
-    'dev-qt/qtwebkit',
-    'mail-client/thunderbird',
-    'dev-java/icedtea',
 )
 
 
@@ -105,6 +106,27 @@ def umask(_func: Optional[AnyCallable] = None,
     return decorator_umask(_func)
 
 
+def _run_output(args: Any,
+                check: bool = True,
+                text: bool = True,
+                env: Optional[Mapping[str, str]] = None,
+                **kwargs: Any) -> CompletedProcess:
+    return sp.run(args,
+                  check=check,
+                  stdout=sp.PIPE,
+                  stderr=sp.PIPE,
+                  universal_newlines=text,
+                  env=env or _minenv(),
+                  **kwargs)
+
+
+def _check_call(args: Any,
+                text: bool = True,
+                env: Optional[Mapping[str, str]] = None,
+                **kwargs: Any) -> int:
+    return sp.check_call(args, universal_newlines=text, env=env, **kwargs)
+
+
 @lru_cache()
 def _setup_logging_stdout(name: Optional[str] = None,
                           verbose: bool = False) -> logging.Logger:
@@ -150,23 +172,25 @@ def esync() -> int:
                         action='store_true',
                         help='Run "layman -S" if installed')
     args = parser.parse_args()
-    env = _minenv()
-
     if args.run_layman:
         try:
-            sp.run(('which', 'layman'), stdout=sp.PIPE, check=True, env=env)
-            sp.run(('layman', '-S'), check=True, env=env)
+            _run_output(('which', 'layman'))
         except sp.CalledProcessError:
-            pass
-
+            log.error('You need to have app-portage/layman installed')
+            return 1
+        _run_output(('layman', '-S'))
     try:
-        sp.run(('which', 'eix-sync'), stdout=sp.PIPE, check=True, env=env)
+        _run_output(('which', 'eix-sync'))
     except sp.CalledProcessError as e:
         if e.returncode != 2:
-            log.error('You need to have eix-sync installed for this to work')
+            log.error(
+                'You need to have app-portage/eix installed for this to work')
         return 1
-
-    return sp.run(('eix-sync', '-qH'), env=env).returncode  # pylint: disable=subprocess-run-check
+    try:
+        _run_output(('eix-sync', '-qH'))
+    except sp.CalledProcessError as e:
+        return e.returncode
+    return 0
 
 
 @graceful_interrupt
@@ -186,14 +210,21 @@ def ecleans() -> int:
     int
         Exit code of the last command.
     """
-    env = _minenv()
-    sp.run(('emerge', '--depclean', '--quiet'), check=True, env=env)
-    sp.run(('emerge', '--quiet', '@preserved-rebuild'), check=True, env=env)
-    sp.run(('revdep-rebuild', '--quiet'), check=True, env=env)
-    sp.run(('eclean-dist', '--deep'), check=True, env=env)
-    return sp.run(['rm', '-fR'] +  # pylint: disable=subprocess-run-check
-                  list(map(str,
-                           Path('/var/tmp/portage').glob('*')))).returncode
+    try:
+        _run_output(('emerge', '--depclean', '--quiet'))
+        _run_output(('emerge', '--quiet', '@preserved-rebuild'))
+        _run_output(('revdep-rebuild', '--quiet'))
+        _run_output(('eclean-dist', '--deep'))
+        _run_output(['rm', '-fR'] +
+                    list(map(str,
+                             Path('/var/tmp/portage').glob('*'))))
+    except sp.CalledProcessError as e:
+        log = _setup_logging_stdout()
+        log.error('%s failed', e.cmd)
+        log.error('STDOUT: %s', e.stdout)
+        log.error('STDOUT: %s', e.stderr)
+        return e.returncode
+    return 0
 
 
 @graceful_interrupt
@@ -272,43 +303,37 @@ def emerges() -> int:
     daemon_reexec = not args.no_daemon_reexec
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
-    env = _minenv()
 
-    sp.run(('emerge', '--oneshot', '--quiet', '--update', 'portage'),
-           check=True,
-           env=env)
+    _check_call(('emerge', '--oneshot', '--quiet', '--update', 'portage'))
     if args.split_heavy:
         ask_arg += [f'--exclude={name}' for name in HEAVY_PACKAGES]
-    sp.run([
+    _check_call([
         'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
         '--update', '--deep', '--newuse', '@world'
-    ] + ask_arg,
-           check=True,
-           env=env)
+    ] + ask_arg)
     if args.split_heavy:
         for name in HEAVY_PACKAGES:
             try:
-                sp.run(('eix', '-I', '-e', name), check=True, env=env)
+                _check_call(('eix', '-I', '-e', name))
             except sp.CalledProcessError:
                 continue
-            sp.run(('emerge', '--oneshot', '--keep-going', '--tree', '--quiet',
-                    '--update', '--deep', '--newuse', name),
-                   check=True,
-                   env=env)
+            _check_call(('emerge', '--oneshot', '--keep-going', '--tree',
+                         '--quiet', '--update', '--deep', '--newuse', name))
 
     if live_rebuild:
-        sp.run(('emerge', '--keep-going', '--quiet', '@live-rebuild'),
-               check=True,
-               env=env)
+        _check_call(('emerge', '--keep-going', '--quiet', '@live-rebuild'))
     if preserved_rebuild:
-        sp.run(('emerge', '--keep-going', '--quiet', '@preserved-rebuild'),
-               check=True,
-               env=env)
+        _check_call((
+            'emerge',
+            '--keep-going',
+            '--quiet',
+            '@preserved-rebuild',
+        ))
 
     if daemon_reexec:
         try:
-            sp.run(('which', 'systemctl'), check=True, stdout=sp.PIPE, env=env)
-            sp.run(('systemctl', 'daemon-reexec'), check=True, env=env)
+            _run_output(('which', 'systemctl'))
+            _check_call(('systemctl', 'daemon-reexec'))
         except sp.CalledProcessError:
             pass
 
@@ -320,48 +345,35 @@ def emerges() -> int:
 
 def _update_grub() -> int:
     log = _setup_logging_stdout()
-    env = _minenv()
     args = ['grub2-mkconfig', '-o', GRUB_CFG]
     try:
-        return sp.run(args,
-                      check=True,
-                      encoding='utf-8',
-                      env=env,
-                      stdout=sp.PIPE,
-                      stderr=sp.PIPE).returncode
+        return _run_output(args).returncode
     except (sp.CalledProcessError, FileNotFoundError):
         args[0] = 'grub-mkconfig'
         try:
-            return sp.run(args,
-                          check=True,
-                          env=env,
-                          encoding='utf-8',
-                          stdout=sp.PIPE,
-                          stderr=sp.PIPE).returncode
+            return _run_output(args).returncode
         except sp.CalledProcessError as e:
             log.error('Failed!')
             log.error('STDOUT: %s', e.stdout)
             log.error('STDERR: %s', e.stderr)
             return e.returncode
-        raise RuntimeError()
 
 
 def _bootctl_update_or_install() -> None:
     try:
-        sp.run(('bootctl', 'update'),
-               check=True,
-               stdout=sp.PIPE,
-               stderr=sp.PIPE)
+        _run_output(('bootctl', 'update'))
     except sp.CalledProcessError:
         try:
-            sp.run(('bootctl', 'install'),
-                   check=True,
-                   encoding='utf-8',
-                   stdout=sp.PIPE,
-                   stderr=sp.PIPE)
+            _run_output(('bootctl', 'install'))
         except sp.CalledProcessError as e:
             if 'Failed to test system token validity' not in e.stderr:
                 raise e
+
+
+def _get_temp_filename(*args: Any, **kwargs: Any):
+    fd, tmp_name = mkstemp(*args, **kwargs)
+    close(fd)
+    return tmp_name
 
 
 def _maybe_sign_exes(esp_path: str,
@@ -372,26 +384,19 @@ def _maybe_sign_exes(esp_path: str,
     config = None
     if config_path:
         config = _config(config_path)
-    env = _minenv()
     output_bootx64 = path_join(esp_path, 'EFI', 'BOOT', 'BOOTX64.EFI')
     output_systemd_bootx64 = path_join(esp_path, 'EFI', 'systemd',
                                        'systemd-bootx64.efi')
-    fd, tmp_kernel = mkstemp()
-    close(fd)
-    fd, tmp_bootx64 = mkstemp()
-    close(fd)
+    tmp_kernel = _get_temp_filename()
+    tmp_bootx64 = _get_temp_filename()
     shutil.copy(output_bootx64, tmp_bootx64)
     shutil.copy(str(kernel_path), tmp_kernel)
-    files_to_sign = ((tmp_bootx64, output_bootx64), (tmp_bootx64,
-                                                     output_systemd_bootx64),
-                     (tmp_kernel, path_join(esp_path, 'gentoo',
-                                            kernel_filename)))
-    for line in sp.run(('bootctl', 'status'),
-                       check=True,
-                       env=env,
-                       stdout=sp.PIPE,
-                       stderr=sp.PIPE,
-                       encoding='utf-8').stdout.split('\n'):
+    files_to_sign = (
+        (tmp_bootx64, output_bootx64),
+        (tmp_bootx64, output_systemd_bootx64),
+        (tmp_kernel, path_join(esp_path, 'gentoo', kernel_filename)),
+    )
+    for line in _run_output(('bootctl', 'status')).stdout.split('\n'):
         if 'Secure Boot: enabled' in line:
             db_key = db_crt = None
             if config:
@@ -406,15 +411,9 @@ def _maybe_sign_exes(esp_path: str,
                          'built-in) before rebooting.')
                 break
             for input_file, output_path in files_to_sign:
-                sp.run(('sbsign', '--key', db_key, '--cert', db_crt,
-                        input_file, '--output', output_path),
-                       check=True,
-                       stderr=sp.PIPE,
-                       stdout=sp.PIPE)
-                sp.run(('sbverify', '--cert', db_crt, output_path),
-                       check=True,
-                       stderr=sp.PIPE,
-                       stdout=sp.PIPE)
+                _run_output(('sbsign', '--key', db_key, '--cert', db_crt,
+                             input_file, '--output', output_path))
+                _run_output(('sbverify', '--cert', db_crt, output_path))
             for input_file, _ in files_to_sign:
                 if isfile(input_file):
                     unlink(input_file)
@@ -468,13 +467,8 @@ def _get_kernel_version() -> Optional[str]:
 
 
 def _update_systemd_boot(config_path: Optional[str] = None) -> int:
-    env = _minenv()
     log = _setup_logging_stdout()
-    esp_path = sp.run(('bootctl', '-p'),
-                      check=True,
-                      env=env,
-                      stdout=sp.PIPE,
-                      encoding='utf-8').stdout.split('\n')[0].strip()
+    esp_path = _run_output(('bootctl', '-p')).stdout.split('\n')[0].strip()
     if not esp_path:
         log.warning(
             '`bootctl -p` returned empty string. Not installing new kernel')
@@ -588,9 +582,8 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
                     suffix = s
                 break
 
-    env = _minenv()
     log.info('Running: make oldconfig')
-    sp.run(('make', 'oldconfig'), check=True, env=env)
+    _run_output(('make', 'oldconfig'))
     commands: Tuple[Tuple[str, ...], ...] = (
         ('make', f'-j{num_cpus}'),
         ('make', 'modules_install'),
@@ -599,26 +592,19 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
     )
     for cmd in commands:
         log.info('Running: %s', ' '.join(map(quote, cmd)))
-        sp.run(cmd, check=True, env=env, stdout=sp.PIPE)
+        _run_output(cmd)
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
-    sp.run(
+    _run_output(
         ('find', '/boot', '-maxdepth', '1', '(', '-name', 'initramfs-*', '-o',
          '-name', 'vmlinuz-*', '-o', '-iname', 'System.map*', '-o', '-iname',
-         'config-*', ')', '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'),
-        check=True,
-        env=env)
-    sp.run(('make', 'install'), check=True, env=env)
+         'config-*', ')', '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'))
+    _run_output(('make', 'install'))
     kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
     cmd = ('dracut', '--force', '--kver', kver_arg)
     log.info('Running: %s', ' '.join(map(quote, cmd)))
     try:
-        sp.run(cmd,
-               check=True,
-               env=env,
-               encoding='utf-8',
-               stdout=sp.PIPE,
-               stderr=sp.PIPE)
+        _run_output(cmd)
     except sp.CalledProcessError as e:
         log.error('Failed!')
         log.error('STDOUT: %s', e.stdout)
@@ -626,11 +612,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
         return e.returncode
 
     try:
-        sp.run(('eix', '-I', '-e', 'grub'),
-               check=True,
-               env=env,
-               stdout=sp.PIPE,
-               stderr=sp.PIPE)
+        _run_output(('eix', '-I', '-e', 'grub'))
         has_grub = True
     except sp.CalledProcessError:
         has_grub = False
@@ -666,12 +648,8 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
     rebuild_kernel
     """
     log = _setup_logging_stdout()
-    env = _minenv()
-    kernel_list = sp.run(('eselect', '--colour=no', 'kernel', 'list'),
-                         check=True,
-                         stdout=sp.PIPE,
-                         encoding='utf-8',
-                         env=env).stdout
+    kernel_list = _run_output(
+        ('eselect', '--colour=no', 'kernel', 'list')).stdout
     lines = filter(None, map(str.strip, kernel_list.split('\n')))
 
     if not any(re.search(r'\*$', line) for line in lines):
@@ -681,12 +659,8 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
             list(
                 filter(
                     None,
-                    sp.run(('eselect', '--colour=no', '--brief', 'kernel',
-                            'list'),
-                           stdout=sp.PIPE,
-                           check=True,
-                           encoding='utf-8',
-                           env=env).stdout.split('\n')))) > 2:
+                    _run_output(('eselect', '--colour=no', '--brief', 'kernel',
+                                 'list')).stdout.split('\n')))) > 2:
         log.info('Unexpected number of lines (eselect --brief). Not updating '
                  'kernel.')
         return 1
@@ -700,7 +674,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
     if unselected not in (1, 2):
         log.info('Unexpected number of lines. Not updating kernel.')
         return 1
-    sp.run(('eselect', 'kernel', 'set', str(unselected)), check=True, env=env)
+    _run_output(('eselect', 'kernel', 'set', str(unselected)))
     return rebuild_kernel(num_cpus, config_path)
 
 
