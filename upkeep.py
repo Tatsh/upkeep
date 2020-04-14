@@ -543,6 +543,9 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
         Number of CPUs (or threads) to pass to ``make -j...``. If not passed,
         defaults to getting the value from ``multiprocessing.cpu_count()``.
 
+    config_path : Optional[str]
+        Configuration file path.
+
     Raises
     ------
     KernelConfigError
@@ -637,6 +640,9 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
         Number of CPUs (or threads) to pass to ``make -j...``. If not passed,
         defaults to getting the value from ``multiprocessing.cpu_count()``.
 
+    config_path : Optional[str]
+        Configuration file path.
+
     Returns
     -------
     int
@@ -687,7 +693,8 @@ def kernel_command(
     Parameters
     ----------
     func : callable
-        A callable that accepts an integer representing number of CPUs.
+        A callable that accepts an integer representing number of CPUs and an
+        optional configuration path string.
 
     Returns
     -------
