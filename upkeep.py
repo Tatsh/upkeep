@@ -338,7 +338,7 @@ def emerges() -> int:
             pass
 
     if up_kernel:
-        return upgrade_kernel(None)
+        return upgrade_kernel(None, args.config)
 
     return 0
 
