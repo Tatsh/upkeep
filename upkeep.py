@@ -48,7 +48,7 @@ class KernelConfigError(Exception):
 
 
 CONFIG_GZ = '/proc/config.gz'
-DEFAULT_USER_CONFIG = expanduser('~/.config/upkeeprc')
+DEFAULT_USER_CONFIG = '/etc/upkeeprc'
 GRUB_CFG = '/boot/grub/grub.cfg'
 INTEL_UC = '/boot/intel-uc.img'
 KERNEL_SRC_DIR = '/usr/src/linux'
