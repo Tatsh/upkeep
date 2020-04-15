@@ -36,3 +36,4 @@ Thumbs.db
 /.vscode/.ropeproject/objectdb
 /.vscode/settings.json
 /.coverage
+/htmlcov/
