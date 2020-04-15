@@ -128,6 +128,18 @@ def _check_call(args: Any,
                          **kwargs)
 
 
+def _suppress_output(args: Any,
+                    text: bool = True,
+                    env: Optional[Mapping[str, str]] = None,
+                    **kwargs: Any) -> int:
+    return sp.check_call(args,
+                         stdout=sp.DEVNULL,
+                         stderr=sp.DEVNULL,
+                         universal_newlines=text,
+                         env=env or _minenv(),
+                         **kwargs)
+
+
 @lru_cache()
 def _setup_logging_stdout(name: Optional[str] = None,
                           verbose: bool = False) -> logging.Logger:
@@ -333,7 +345,7 @@ def emerges() -> int:
 
     if daemon_reexec:
         try:
-            _check_call(('which', 'systemctl'))
+            _suppress_output(('which', 'systemctl'))
             _check_call(('systemctl', 'daemon-reexec'))
         except sp.CalledProcessError:
             pass
