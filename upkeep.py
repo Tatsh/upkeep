@@ -333,7 +333,7 @@ def emerges() -> int:
 
     if daemon_reexec:
         try:
-            _run_output(('which', 'systemctl'))
+            _check_call(('which', 'systemctl'))
             _check_call(('systemctl', 'daemon-reexec'))
         except sp.CalledProcessError:
             pass
@@ -655,9 +655,8 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
     rebuild_kernel
     """
     log = _setup_logging_stdout()
-    kernel_list = _run_output(
-        ('eselect', '--colour=no', 'kernel', 'list')).stdout
-    lines = filter(None, map(str.strip, kernel_list.split('\n')))
+    kernel_list = _run_output(('eselect', '--colour=no', 'kernel', 'list'))
+    lines = filter(None, map(str.strip, kernel_list.stdout.split('\n')))
 
     if not any(re.search(r'\*$', line) for line in lines):
         log.info('Select a kernel to upgrade to (eselect kernel set ...).')
