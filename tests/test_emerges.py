@@ -1,4 +1,5 @@
 from unittest.mock import patch
+import subprocess as sp
 import sys
 
 from upkeep import emerges, HEAVY_PACKAGES
@@ -78,7 +79,7 @@ def test_emerges_daemon_reexec_no_systemd(sp_mocker: SubprocessMocker) -> None:
         'emerges', '--no-live-rebuild', '--no-preserved-rebuild',
         '--no-upgrade-kernel'
     ]
-    sp_mocker.add_output4(('which', 'systemctl'), raise_=True)
+    sp_mocker.add_output4(('which', 'systemctl'), raise_=True, stdout=sp.DEVNULL, stderr=sp.DEVNULL)
     with patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output):
         assert emerges() == 0
         assert 'systemctl daemon-reexec' not in sp_mocker.history
