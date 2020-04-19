@@ -599,7 +599,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
                 break
 
     log.info('Running: make oldconfig')
-    _run_output(('make', 'oldconfig'))
+    sp.run(('make', 'oldconfig'), check=True)
     commands: Tuple[Tuple[str, ...], ...] = (
         ('make', f'-j{num_cpus}'),
         ('make', 'modules_install'),
