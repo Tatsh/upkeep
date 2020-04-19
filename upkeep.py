@@ -224,11 +224,11 @@ def ecleans() -> int:
         Exit code of the last command.
     """
     try:
-        _run_output(('emerge', '--depclean', '--quiet'))
-        _run_output(('emerge', '--quiet', '@preserved-rebuild'))
-        _run_output(('revdep-rebuild', '--quiet'))
-        _run_output(('eclean-dist', '--deep'))
-        _run_output(['rm', '-fR'] +
+        _check_call(('emerge', '--depclean', '--quiet'))
+        _check_call(('emerge', '--quiet', '@preserved-rebuild'))
+        _check_call(('revdep-rebuild', '--quiet'))
+        _check_call(('eclean-dist', '--deep'))
+        _check_call(['rm', '-fR'] +
                     list(map(str,
                              Path('/var/tmp/portage').glob('*'))))
     except sp.CalledProcessError as e:
