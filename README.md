@@ -5,6 +5,8 @@
 
 This is a set of commands to simplify maintaining a Gentoo system.
 
+[Documentation](https://upkeep.rtfd.io/)
+
 ## esync
 
 This command needs `eix` installed to fully function. It runs `eix-sync`. This
