@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 from configparser import ConfigParser
 from contextlib import ExitStack
 from functools import lru_cache, wraps
