@@ -1,14 +1,11 @@
+# SPDX-License-Identifier: MIT
 # pylint: disable=redefined-builtin,invalid-name
+"""See https://www.sphinx-doc.org/en/master/usage/configuration.html"""
 from typing import Sequence
-# Configuration file for the Sphinx documentation builder.
-# https://www.sphinx-doc.org/en/master/usage/configuration.html
-
-# region Path setup
-# If extensions (or modules to document with autodoc) are in another directory,
-# add these directories to sys.path here. If the directory is relative to the
-# documentation root, use os.path.abspath to make it absolute, like shown here.
 import os
 import sys
+
+# region Path setup
 sys.path.insert(0, os.path.abspath('..'))
 # endregion
 
@@ -19,7 +16,7 @@ author = 'Andrew Udvare'
 # The short X.Y version
 version = '1.2.7'
 # The full version, including alpha/beta/rc tags
-release = 'v1.2.7'
+release = f'v{version}'
 # endregion
 
 # region General configuration
