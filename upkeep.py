@@ -90,13 +90,17 @@ def graceful_interrupt(_func: Optional[AnyCallable] = None) -> AnyCallable:
 
 def umask(_func: Optional[AnyCallable] = None,
           *,
-          new_umask: int) -> AnyCallable:
-    """Restores prior umask after calling the decorated function."""
+          new_umask: int,
+          restore: bool = False) -> AnyCallable:
+    """Sets the umask before calling the decorated function."""
     def decorator_umask(func: AnyCallable) -> AnyCallable:
         @wraps(func)
         def inner(*args: Any, **kwargs: Any) -> Any:
-            set_umask(new_umask)
-            return func(*args, **kwargs)
+            old_umask = set_umask(new_umask)
+            ret = func(*args, **kwargs)
+            if restore:
+                set_umask(old_umask)
+            return ret
 
         return inner
 
@@ -130,9 +134,9 @@ def _check_call(args: Any,
 
 
 def _suppress_output(args: Any,
-                    text: bool = True,
-                    env: Optional[Mapping[str, str]] = None,
-                    **kwargs: Any) -> int:
+                     text: bool = True,
+                     env: Optional[Mapping[str, str]] = None,
+                     **kwargs: Any) -> int:
     return sp.check_call(args,
                          stdout=sp.DEVNULL,
                          stderr=sp.DEVNULL,
