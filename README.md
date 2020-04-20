@@ -1,6 +1,6 @@
 # Easier Gentoo system maintenance
 
-![Python package](https://github.com/Tatsh/upkeep/workflows/Python%20package/badge.svg)
+[![Python package](https://github.com/Tatsh/upkeep/workflows/Python%20package/badge.svg)](https://github.com/Tatsh/upkeep/actions?query=workflow%3A%22Python+package%22)
 [![Coverage Status](https://coveralls.io/repos/github/Tatsh/upkeep/badge.svg?branch=master)](https://coveralls.io/github/Tatsh/upkeep?branch=master)
 
 This is a set of commands to simplify maintaining a Gentoo system.
@@ -15,12 +15,12 @@ This command can run `layman -S` for you if you pass `-l` or `--run-layman`.
 
 This command will do the following:
 
-* Update Portage
-* Update `@world` with options `--with-bdeps=y`, `--update`, `--deep`, `--newuse`
-* Update live installations of packages (`@live-rebuild`)
-* Run `emerge @preserved-rebuild`
-* Run `systemctl daemon-reexec` (if applicable)
-* Update the kernel
+- Update Portage
+- Update `@world` with options `--with-bdeps=y`, `--update`, `--deep`, `--newuse`
+- Update live installations of packages (`@live-rebuild`)
+- Run `emerge @preserved-rebuild`
+- Run `systemctl daemon-reexec` (if applicable)
+- Update the kernel
 
 There are flags to disable most parts of this functionality, such as `--no-upgrade-kernel`. Pass `--help` to see all the options.
 
@@ -40,8 +40,8 @@ If you want to only rebuild the kernel, run `rebuild-kernel`.
 
 This command will run the following commands (or equivalents):
 
-* `emerge --depclean`
-* `emerge @preserved-rebuild`
-* `revdep-rebuild`
-* `eclean-dist --deep`
-* `rm -fR /var/tmp/portage/*`
+- `emerge --depclean`
+- `emerge @preserved-rebuild`
+- `revdep-rebuild`
+- `eclean-dist --deep`
+- `rm -fR /var/tmp/portage/*`
