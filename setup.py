@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 """Module with Portage helper commands."""
 from setuptools import setup
 
