@@ -414,27 +414,25 @@ def _maybe_sign_exes(esp_path: str,
         (tmp_bootx64, output_systemd_bootx64),
         (tmp_kernel, path_join(esp_path, 'gentoo', kernel_filename)),
     )
-    for line in _run_output(('bootctl', 'status')).stdout.split('\n'):
-        if 'Secure Boot: enabled' in line:
-            db_key = db_crt = None
-            if config:
-                db_key = config.get('systemd-boot', 'sign-key', fallback='')
-                db_crt = config.get('systemd-boot', 'sign-cert', fallback='')
-            if not db_key or not db_crt:
-                shutil.copy(tmp_kernel,
-                            path_join(esp_path, 'gentoo', kernel_filename))
-                log.info('You appear to have Secure Boot enabled. Make sure '
-                         'you sign your boot loader and your kernel (which '
-                         'also must have EFI stub and its command line '
-                         'built-in) before rebooting.')
-                break
-            for input_file, output_path in files_to_sign:
-                _run_output(('sbsign', '--key', db_key, '--cert', db_crt,
-                             input_file, '--output', output_path))
-                _run_output(('sbverify', '--cert', db_crt, output_path))
-            for input_file, _ in files_to_sign:
-                if isfile(input_file):
-                    unlink(input_file)
+    db_key = db_crt = None
+    if config:
+        db_key = config.get('systemd-boot', 'sign-key', fallback='')
+        db_crt = config.get('systemd-boot', 'sign-cert', fallback='')
+    if not db_key or not db_crt:
+        shutil.copy(tmp_kernel, path_join(esp_path, 'gentoo', kernel_filename))
+        if 'Secure Boot: enabled' in _run_output(('bootctl', 'status')).stdout:
+            log.info('You appear to have Secure Boot enabled. Make sure '
+                     'you sign your boot loader and your kernel (which '
+                     'also must have EFI stub and its command line '
+                     'built-in) before rebooting.')
+    else:
+        for input_file, output_path in files_to_sign:
+            _run_output(('sbsign', '--key', db_key, '--cert', db_crt,
+                         input_file, '--output', output_path))
+            _run_output(('sbverify', '--cert', db_crt, output_path))
+        for input_file, _ in files_to_sign:
+            if isfile(input_file):
+                unlink(input_file)
 
 
 def _manage_loader_conf(loader_conf: Path,
@@ -594,15 +592,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
         raise KernelConfigError(
             'Will not build without a .config file present')
 
-    suffix = ''
-    with open('.config', 'r') as file2:
-        for line in file2.readlines():
-            if line.startswith('CONFIG_LOCALVERSION='):
-                s = line.split('=')[-1].strip()[1:-1]
-                if s:
-                    suffix = s
-                break
-
+    suffix = _get_kernel_version_suffix() or ''
     log.info('Running: make oldconfig')
     _check_call(('make', 'oldconfig'))
     commands: Tuple[Tuple[str, ...], ...] = (
@@ -702,8 +692,8 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
 
 
 def kernel_command(
-    func: Callable[[Optional[int], Optional[str]], int]
-) -> Callable[[], int]:
+        func: Callable[[Optional[int], Optional[str]],
+                       int]) -> Callable[[], int]:
     """
     CLI entry point for the ``upgrade-kernel`` and ``rebuild-kernel`` commands.
 
