@@ -165,6 +165,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_image(
 
 def test_upgrade_kernel_rebuild_systemd_boot_normal(
         mocker: MockFixture, sp_mocker: MockFixture) -> None:
+    # pylint: disable=no-self-use
     class FakeFile:
         def __init__(self, content: bytes = b''):
             self.content = content
@@ -191,6 +192,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
         def glob(self, _glob_str: str):
             if self.name == '/boot':
                 return [PathMock('mz-file'), PathMock('not-mz-file')]
+            return []
 
         def open(self, _mode: str):
             if self.name == 'mz-file':
@@ -205,6 +207,8 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
 
         def unlink(self):
             pass
+
+    # pylint: enable=no-self-use
 
     mocker.patch('upkeep.Path', side_effect=PathMock)
     mocker.patch('upkeep.shutil.rmtree')
