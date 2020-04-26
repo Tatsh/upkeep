@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 from typing import Iterator
 
 import pytest

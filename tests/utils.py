@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 # pylint: disable=too-few-public-methods,import-outside-toplevel
 from typing import Any, Dict, Optional, Type, Union
 import io

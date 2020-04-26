@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 from inspect import isfunction
 
 from upkeep import KernelConfigError, graceful_interrupt, kernel_command, umask

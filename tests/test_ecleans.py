@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: MIT
 from unittest.mock import patch
 
 from upkeep import ecleans
