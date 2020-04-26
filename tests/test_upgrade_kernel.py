@@ -124,6 +124,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_esp_path(
 
 def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
         mocker: MockFixture, sp_mocker: MockFixture) -> None:
+    mocker.patch('upkeep.makedirs')
     mocker.patch('upkeep.Path')
     mocker.patch('shutil.rmtree')
     mocker.patch('upkeep.chdir')
@@ -144,6 +145,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
 
 def test_upgrade_kernel_rebuild_systemd_boot_no_image(
         mocker: MockFixture, sp_mocker: MockFixture) -> None:
+    mocker.patch('upkeep.makedirs')
     mocker.patch('upkeep.Path')
     mocker.patch('shutil.rmtree')
     mocker.patch('upkeep.chdir')
@@ -210,6 +212,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
 
     # pylint: enable=no-self-use
 
+    mocker.patch('upkeep.makedirs')
     mocker.patch('upkeep.Path', side_effect=PathMock)
     mocker.patch('upkeep.shutil.rmtree')
     mocker.patch('upkeep.shutil.copy')
