@@ -54,8 +54,8 @@ GRUB_CFG = '/boot/grub/grub.cfg'
 INTEL_UC = '/boot/intel-uc.img'
 KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
-SPECIAL_ENV = ('USE', 'HOME', 'MAKEOPTS', 'CONFIG_PROTECT_MASK', 'LANG',
-               'PATH', 'SHELL', 'CONFIG_PROTECT', 'TERM')
+SPECIAL_ENV = ('CONFIG_PROTECT', 'CONFIG_PROTECT_MASK', 'HOME', 'LANG',
+               'MAKEOPTS', 'PATH', 'SHELL', 'TERM', 'USE')
 AnyCallable = Callable[..., Any]
 
 
