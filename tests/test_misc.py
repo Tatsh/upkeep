@@ -11,7 +11,7 @@ def test_graceful_interrupt_no_function():
 def test_umask_with_function():
     umasker = umask(lambda: None, new_umask=0o022, restore=True)
     assert isfunction(umasker)
-    assert umasker() is None
+    assert umasker() is None  # pylint: disable=no-value-for-parameter
 
 
 def test_kernel_command():
