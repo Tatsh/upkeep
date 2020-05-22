@@ -1,11 +1,12 @@
 # SPDX-License-Identifier: MIT
+from subprocess import CalledProcessError
 from typing import Any, Optional
 import sys
 
 from pytest_mock.plugin import MockFixture
 import pytest
 
-from upkeep import GRUB_CFG, KernelConfigError, emerges, upgrade_kernel
+from upkeep import GRUB_CFG, _esp_path, _has_grub, emerges, upgrade_kernel
 
 from .utils import SubprocessMocker
 
@@ -18,6 +19,7 @@ def test_upgrade_kernel_no_eselect_output(sp_mocker: SubprocessMocker,
     ]
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output='')
+    mocker.patch('upkeep.glob', return_value=['.'])
     mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
     mocker.patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output)
     assert emerges() == 1
@@ -34,6 +36,7 @@ def test_upgrade_kernel_eselect_too_many_kernels(sp_mocker: SubprocessMocker,
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' \n \n \n')
+    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
     mocker.patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output)
     assert emerges() == 1
@@ -50,6 +53,7 @@ def test_upgrade_kernel_eselect_kernel_set_invalid_output_from_eselect(
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' *\n \n')
+    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
     mocker.patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output)
     assert emerges() == 1
@@ -57,6 +61,7 @@ def test_upgrade_kernel_eselect_kernel_set_invalid_output_from_eselect(
 
 def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture,
                                           sp_mocker: MockFixture) -> None:
+    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.chdir')
     mocker.patch('upkeep.isfile', return_value=False)
     mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
@@ -66,12 +71,12 @@ def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture,
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' *\n \n')
-    with pytest.raises(KernelConfigError):
-        upgrade_kernel()
+    assert upgrade_kernel() == 1
 
 
 def test_upgrade_kernel_rebuild_error_during_build(
         mocker: MockFixture, sp_mocker: MockFixture) -> None:
+    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.Path')
     mocker.patch('upkeep.chdir')
     mocker.patch('upkeep.open')
@@ -79,16 +84,19 @@ def test_upgrade_kernel_rebuild_error_during_build(
     mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
     mocker.patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
-                          stdout_output=' [1] *\n [2] \n')
+                          stdout_output=' [1] *\n [2] linux-5.6.14-gentoo\n')
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
-        stdout_output=' *\n \n')
+        stdout_output=' [1] linux-5.6.14-gentoo *\n \n')
+    sp_mocker.add_output3(('bootctl', '-p'), stdout_output='/efi')
     sp_mocker.add_output3(('dracut', '--force', '--kver', ''), raise_=True)
-    assert upgrade_kernel() == 255
+    with pytest.raises(CalledProcessError):
+        upgrade_kernel()
 
 
 def test_upgrade_kernel_rebuild_error_during_grub(
         mocker: MockFixture, sp_mocker: MockFixture) -> None:
+    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.Path')
     mocker.patch('upkeep.chdir')
     mocker.patch('upkeep.open')
@@ -102,30 +110,36 @@ def test_upgrade_kernel_rebuild_error_during_grub(
         stdout_output=' *\n \n')
     sp_mocker.add_output3(['grub2-mkconfig', '-o', GRUB_CFG], raise_=True)
     sp_mocker.add_output3(['grub-mkconfig', '-o', GRUB_CFG], raise_=True)
-    assert upgrade_kernel() == 255
+    with pytest.raises(CalledProcessError):
+        upgrade_kernel()
 
 
 def test_upgrade_kernel_rebuild_systemd_boot_no_esp_path(
         mocker: MockFixture, sp_mocker: MockFixture) -> None:
+    _has_grub.cache_clear()
+    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.Path')
     mocker.patch('upkeep.chdir')
     mocker.patch('upkeep.open')
     mocker.patch('upkeep.isfile', return_value=True)
     mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
     mocker.patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.lru_cache', side_effect=lambda x: x)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] \n')
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' *\n \n')
-    sp_mocker.add_output3(('eix', '-I', '-e', 'grub'), raise_=True)
+    sp_mocker.add_output3(('eix', '--installed', '--exact', 'grub'),
+                          raise_=True)
     sp_mocker.add_output3(('bootctl', '-p'), stdout_output='')
     assert upgrade_kernel() == 1
 
 
 def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
         mocker: MockFixture, sp_mocker: MockFixture) -> None:
-    mocker.patch('upkeep.makedirs')
+    _esp_path.cache_clear()
+    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.Path')
     mocker.patch('shutil.rmtree')
     mocker.patch('upkeep.chdir')
@@ -138,31 +152,10 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' *\n \n')
-    sp_mocker.add_output3(('eix', '-I', '-e', 'grub'), raise_=True)
-    sp_mocker.add_output3(('bootctl', '-p'), stdout_output='/boot/efi')
+    sp_mocker.add_output3(('eix', '--installed', '--exact', 'grub'),
+                          raise_=True)
+    sp_mocker.add_output3(('bootctl', '-p'), stdout_output='/efi')
     with pytest.raises(RuntimeError, match='Failed to detect Linux version'):
-        upgrade_kernel()
-
-
-def test_upgrade_kernel_rebuild_systemd_boot_no_image(
-        mocker: MockFixture, sp_mocker: MockFixture) -> None:
-    mocker.patch('upkeep.makedirs')
-    mocker.patch('upkeep.Path')
-    mocker.patch('shutil.rmtree')
-    mocker.patch('upkeep.chdir')
-    mocker.patch('upkeep.open')
-    mocker.patch('upkeep.isfile', return_value=True)
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
-    mocker.patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output)
-    sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
-                          stdout_output=' [1] *\n [2] \n')
-    sp_mocker.add_output3(
-        ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
-        stdout_output=' *\n \n')
-    sp_mocker.add_output3(('eix', '-I', '-e', 'grub'), raise_=True)
-    sp_mocker.add_output3(('bootctl', '-p'), stdout_output='/boot/efi')
-    mocker.patch('upkeep._get_kernel_version', return_value='5.6.6-gentoo')
-    with pytest.raises(RuntimeError, match='Failed to find Linux image'):
         upgrade_kernel()
 
 
@@ -211,9 +204,11 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
         def unlink(self):
             pass
 
-    # pylint: enable=no-self-use
+        def joinpath(self, *args: Any):  # pylint: disable=unused-argument
+            return self
 
-    mocker.patch('upkeep.makedirs')
+    # pylint: enable=no-self-use
+    mocker.patch('upkeep.glob', return_value=[])
     mocker.patch('upkeep.Path', side_effect=PathMock)
     mocker.patch('upkeep.shutil.rmtree')
     mocker.patch('upkeep.shutil.copy')
@@ -224,11 +219,12 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
     mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
     mocker.patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
-                          stdout_output=' [1] *\n [2] \n')
+                          stdout_output=' [1] *\n [2] linux-5.6.6-gentoo\n')
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' *\n \n')
-    sp_mocker.add_output3(('eix', '-I', '-e', 'grub'), raise_=True)
+    sp_mocker.add_output3(('eix', '--installed', '--exact', 'grub'),
+                          raise_=True)
     sp_mocker.add_output3(('bootctl', '-p'), stdout_output='/boot/efi')
     sp_mocker.add_output3(('bootctl', 'status'), stdout_output='')
     mocker.patch('upkeep._get_kernel_version', return_value='5.6.6-gentoo')

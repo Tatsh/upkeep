@@ -2,8 +2,9 @@
 from configparser import ConfigParser
 from contextlib import ExitStack
 from functools import lru_cache, wraps
+from glob import glob
 from multiprocessing import cpu_count
-from os import chdir, close, environ, makedirs, umask as set_umask, unlink
+from os import chdir, close, environ, umask as set_umask, unlink
 from os.path import basename, isfile, join as path_join, realpath
 from pathlib import Path
 from shlex import quote
@@ -371,10 +372,9 @@ def _update_grub() -> int:
         try:
             return _run_output(args).returncode
         except sp.CalledProcessError as e:
-            log.error('Failed!')
             log.error('STDOUT: %s', e.stdout)
             log.error('STDERR: %s', e.stderr)
-            return e.returncode
+            raise e
 
 
 def _bootctl_update_or_install() -> None:
@@ -388,79 +388,50 @@ def _bootctl_update_or_install() -> None:
                 raise e
 
 
-def _get_temp_filename(*args: Any, **kwargs: Any):
+def _get_temp_filename(*args: Any, **kwargs: Any) -> str:
     fd, tmp_name = mkstemp(*args, **kwargs)
     close(fd)
     return tmp_name
 
 
-def _maybe_sign_exes(esp_path: str,
-                     kernel_filename: str,
-                     kernel_path: Path,
-                     config_path: Optional[str] = None) -> None:
+def _maybe_sign_exes(esp_path: str, config_path: Optional[str] = None) -> None:
     log = _setup_logging_stdout()
     config = None
     if config_path:
         config = _config(config_path)
+
     output_bootx64 = path_join(esp_path, 'EFI', 'BOOT', 'BOOTX64.EFI')
     output_systemd_bootx64 = path_join(esp_path, 'EFI', 'systemd',
                                        'systemd-bootx64.efi')
-    tmp_kernel = _get_temp_filename()
-    tmp_bootx64 = _get_temp_filename()
-    shutil.copy(output_bootx64, tmp_bootx64)
-    shutil.copy(str(kernel_path), tmp_kernel)
-    files_to_sign = (
-        (tmp_bootx64, output_bootx64),
-        (tmp_bootx64, output_systemd_bootx64),
-        (tmp_kernel, path_join(esp_path, 'gentoo', kernel_filename)),
-    )
     db_key = db_crt = None
     if config:
         db_key = config.get('systemd-boot', 'sign-key', fallback='')
         db_crt = config.get('systemd-boot', 'sign-cert', fallback='')
-    if not db_key or not db_crt:
-        shutil.copy(tmp_kernel, path_join(esp_path, 'gentoo', kernel_filename))
-        if 'Secure Boot: enabled' in _run_output(('bootctl', 'status')).stdout:
-            log.info('You appear to have Secure Boot enabled. Make sure '
-                     'you sign your boot loader and your kernel (which '
-                     'also must have EFI stub and its command line '
-                     'built-in) before rebooting.')
-    else:
-        for input_file, output_path in files_to_sign:
-            _run_output(('sbsign', '--key', db_key, '--cert', db_crt,
-                         input_file, '--output', output_path))
-            _run_output(('sbverify', '--cert', db_crt, output_path))
-        for input_file, _ in files_to_sign:
-            if isfile(input_file):
-                unlink(input_file)
+    if (not db_key or not db_crt and 'Secure Boot: enabled' in _run_output(
+        ('bootctl', 'status')).stdout):
+        log.info('You appear to have Secure Boot enabled. Make sure to sign '
+                 'the boot loader before rebooting. If you are using a unified'
+                 ' EFI kernel image, you must sign it as well.')
+        return
+
+    tmp_bootx64 = _get_temp_filename()
+    shutil.copy(output_bootx64, tmp_bootx64)
+    files_to_sign = (
+        (tmp_bootx64, output_bootx64),
+        (tmp_bootx64, output_systemd_bootx64),
+    )
+    for input_file, output_path in files_to_sign:
+        cmd = ('sbsign', '--key', cast(str, db_key), '--cert',
+               cast(str, db_crt), input_file, '--output', output_path)
+        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        _run_output(cmd)
+        _run_output(('sbverify', '--cert', db_crt, output_path))
+    for input_file, _ in files_to_sign:
+        if isfile(input_file):
+            unlink(input_file)
 
 
-def _manage_loader_conf(loader_conf: Path,
-                        config_path: Optional[str] = None) -> None:
-    has_gentoo_default = False
-    lines = []
-    config = None
-    timeout = None
-    if config_path:
-        config = _config(config_path)
-        timeout = config.get('systemd-boot', 'timeout', fallback='3')
-    with loader_conf.open('r') as f:
-        for line in f.readlines():
-            if 'default gentoo*' in line:
-                has_gentoo_default = True
-            if line.startswith('default ') or (line.startswith('timeout ')
-                                               and config and timeout):
-                continue
-            lines.append(line)
-    if not has_gentoo_default:
-        with loader_conf.open('w+') as f:
-            for line in lines:
-                f.write(line)
-            f.write('default gentoo*\n')
-            if timeout:
-                f.write(f'timeout {timeout}\n')
-
-
+@lru_cache()
 def _get_kernel_version_suffix() -> Optional[str]:
     with open('.config', 'r') as f:
         for line in f.readlines():
@@ -472,6 +443,7 @@ def _get_kernel_version_suffix() -> Optional[str]:
     return None
 
 
+@lru_cache()
 def _get_kernel_version() -> Optional[str]:
     with open('include/generated/autoconf.h', 'r') as f:
         for line in f.readlines():
@@ -482,50 +454,49 @@ def _get_kernel_version() -> Optional[str]:
     return None
 
 
+@lru_cache()
+def _uefi_unified() -> bool:
+    try:
+        _run_output(['grep', '-E', '^uefi="(yes|true)"'] +
+                    glob('/etc/dracut.conf.d/*.conf'))
+        return True
+    except sp.CalledProcessError:
+        return False
+
+
+@lru_cache()
+def _has_grub():
+    try:
+        _run_output(('eix', '--installed', '--exact', 'grub'))
+        return True
+    except sp.CalledProcessError:
+        return False
+
+
+@lru_cache()
+def _esp_path():
+    return _run_output(('bootctl', '-p')).stdout.split('\n')[0].strip()
+
+
 def _update_systemd_boot(config_path: Optional[str] = None) -> int:
     log = _setup_logging_stdout()
-    esp_path = _run_output(('bootctl', '-p')).stdout.split('\n')[0].strip()
-    if not esp_path:
-        log.warning(
-            '`bootctl -p` returned empty string. Not installing new kernel')
-        return 1
+    if not _esp_path():
+        raise KernelConfigError('`bootctl -p` returned empty string')
     _bootctl_update_or_install()
-    kernel_location = path_join(esp_path, 'gentoo')
-    if Path(kernel_location).exists():
-        shutil.rmtree(kernel_location)
-    entries_path = path_join(esp_path, 'loader', 'entries')
-    makedirs(kernel_location, 0o755, exist_ok=True)
-    makedirs(entries_path, 0o755, exist_ok=True)
-    gentoo_conf = Path(path_join(entries_path, 'gentoo.conf'))
-    loader_conf = Path(path_join(esp_path, 'loader', 'loader.conf'))
+
     kernel_version = _get_kernel_version()
     if not kernel_version:
         raise RuntimeError('Failed to detect Linux version')
-    suffix = _get_kernel_version_suffix() or ''
-    rd_filename = f'initramfs-{kernel_version}{suffix}.img'
-    rd_path = path_join('/boot', rd_filename)
-    has_rd = isfile(rd_path)
-    kernel_filename = kernel_path = None
-    for path in Path('/boot').glob(f'*{kernel_version}*'):
-        with path.open('rb') as fb:
-            if fb.read(2) == b'MZ' and not kernel_filename:
-                kernel_filename = basename(path.name)
-                kernel_path = path
-            else:
-                shutil.copy(str(path), path_join(kernel_location, path.name))
-    if not kernel_filename or not kernel_path:
-        raise RuntimeError('Failed to find Linux image')
-    with gentoo_conf.open('w+') as f:
-        f.write('title Gentoo\n')
-        f.write(f'linux /gentoo/{kernel_filename}\n')
-        if isfile(INTEL_UC):
-            shutil.copyfile(INTEL_UC,
-                            path_join(kernel_location, basename(INTEL_UC)))
-            f.write('initrd /gentoo/intel-uc.img\n')
-        if has_rd:
-            f.write(f'initrd /gentoo/{rd_filename}\n')
-    _manage_loader_conf(loader_conf, config_path)
-    _maybe_sign_exes(esp_path, kernel_filename, kernel_path, config_path)
+
+    if not _uefi_unified():
+        # Type #1 with kernel-install
+        # Dracut is expected to be installed which will add initrd
+        suffix = _get_kernel_version_suffix() or ''
+        cmd = ('kernel-install', 'add', f'{kernel_version}{suffix}',
+               f'/boot/vmlinuz-{kernel_version}{suffix}')
+        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        _run_output(cmd)
+    _maybe_sign_exes(_esp_path(), config_path)
     # Clean up /boot
     for path in Path('/boot').glob(f'*{kernel_version}*'):
         path.unlink()
@@ -550,8 +521,8 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
     - Archives the old kernel and related files in ``/boot`` to the old kernels
       directory.
     - ``make install``
-    - ``dracut --force``
-    - ``grub-mkconfig -o /boot/grub/grub.cfg``
+    - ``dracut --force`` (if GRUB is installed)
+    - ``grub-mkconfig -o /boot/grub/grub.cfg`` (if GRUB is installed)
 
     Parameters
     ----------
@@ -606,30 +577,31 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
         _run_output(cmd)
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
-    _run_output(
-        ('find', '/boot', '-maxdepth', '1', '(', '-name', 'initramfs-*', '-o',
-         '-name', 'vmlinuz-*', '-o', '-iname', 'System.map*', '-o', '-iname',
-         'config-*', ')', '-exec', 'mv', '{}', OLD_KERNELS_DIR, ';'))
-    _run_output(('make', 'install'))
-    kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
-    cmd = ('dracut', '--force', '--kver', kver_arg)
-    log.info('Running: %s', ' '.join(map(quote, cmd)))
-    try:
+    commands = (('find', '/boot', '-maxdepth', '1', '(', '-name',
+                 'initramfs-*', '-o', '-name', 'vmlinuz-*', '-o', '-iname',
+                 'System.map*', '-o', '-iname', 'config-*', ')', '-exec', 'mv',
+                 '{}', OLD_KERNELS_DIR, ';'), (
+                     'make',
+                     'install',
+                 ))
+    for cmd in commands:
+        log.info('Running: %s', ' '.join(map(quote, cmd)))
         _run_output(cmd)
-    except sp.CalledProcessError as e:
-        log.error('Failed!')
-        log.error('STDOUT: %s', e.stdout)
-        log.error('STDERR: %s', e.stderr)
-        return e.returncode
 
-    try:
-        _run_output(('eix', '-I', '-e', 'grub'))
-        has_grub = True
-    except sp.CalledProcessError:
-        has_grub = False
+    if _has_grub() or _uefi_unified():
+        kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
+        cmd = ('dracut', '--force', '--kver', kver_arg)
+        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        try:
+            _run_output(cmd)
+        except sp.CalledProcessError as e:
+            log.error('STDOUT: %s', e.stdout)
+            log.error('STDERR: %s', e.stderr)
+            raise e
 
-    if has_grub:
+    if _has_grub():
         return _update_grub()
+
     return _update_systemd_boot(config_path)
 
 
@@ -687,8 +659,36 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
     if unselected not in (1, 2):
         log.info('Unexpected number of lines. Not updating kernel.')
         return 1
-    _run_output(('eselect', 'kernel', 'set', str(unselected)))
-    return rebuild_kernel(num_cpus, config_path)
+    cmd: Tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
+    log.info('Running: %s', ' '.join(map(quote, cmd)))
+    _run_output(cmd)
+    try:
+        rebuild_kernel(num_cpus, config_path)
+    except KernelConfigError as e:
+        log.error('%s', e)
+        return 1
+
+    kernel_list = _run_output(('eselect', '--colour=no', 'kernel', 'list'))
+    lines = filter(None, map(str.strip, kernel_list.stdout.split('\n')))
+    old_kernel = None
+    for line in (x for x in lines if not x.endswith('*')):
+        m = re.search(r'^\[[0-9]+\]', line)
+        if m:
+            old_kernel = re.split(r'^\[[0-9]+\]\s+', line)[1][6:]
+            break
+    if not old_kernel:
+        raise KernelConfigError('Failed to determine old kernel version')
+    suffix = _get_kernel_version_suffix() or ''
+    if _uefi_unified():
+        for path in Path(_esp_path()).joinpath(
+                'EFI', 'Linux').glob(f'linux-{old_kernel}{suffix}*.efi'):
+            path.unlink()
+    else:
+        cmd = ('kernel-install', 'remove', f'{old_kernel}{suffix}')
+        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        _run_output(cmd)
+
+    return 0
 
 
 def kernel_command(
