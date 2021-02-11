@@ -327,8 +327,8 @@ def emerges() -> int:
     if args.split_heavy:
         ask_arg += [f'--exclude={name}' for name in HEAVY_PACKAGES]
     _check_call([
-        'emerge', '--keep-going', '--tree', '--quiet',
-        '--update', '--deep', '--newuse', '@world'
+        'emerge', '--keep-going', '--tree', '--quiet', '--update', '--deep',
+        '--newuse', '@world'
     ] + ask_arg)
     if args.split_heavy:
         for name in HEAVY_PACKAGES:
@@ -357,7 +357,7 @@ def emerges() -> int:
             pass
 
     if up_kernel:
-        return upgrade_kernel(None, args.config)
+        return upgrade_kernel(None, args.config, fatal=False)
 
     return 0
 
@@ -606,7 +606,8 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
 
 
 def upgrade_kernel(num_cpus: Optional[int] = None,
-                   config_path: Optional[str] = None) -> int:
+                   config_path: Optional[str] = None,
+                   fatal: Optional[bool] = True) -> int:
     """
     Upgrades the kernel.
 
@@ -622,6 +623,10 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
 
     config_path : Optional[str]
         Configuration file path.
+
+    fatal : Optional[bool]
+        If ``True``, raises certain exceptions or returns 1. If ``False``,
+        always returns 0.
 
     Returns
     -------
@@ -639,7 +644,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
 
     if not any(re.search(r'\*$', line) for line in lines):
         log.info('Select a kernel to upgrade to (eselect kernel set ...).')
-        return 1
+        return 1 if fatal else 0
     if len(
             list(
                 filter(
@@ -648,7 +653,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
                                  'list')).stdout.split('\n')))) > 2:
         log.info('Unexpected number of lines (eselect --brief). Not updating '
                  'kernel.')
-        return 1
+        return 1 if fatal else 0
 
     unselected = None
     for line in (x for x in lines if not x.endswith('*')):
@@ -658,7 +663,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
             break
     if unselected not in (1, 2):
         log.info('Unexpected number of lines. Not updating kernel.')
-        return 1
+        return 1 if fatal else 0
     cmd: Tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
     log.info('Running: %s', ' '.join(map(quote, cmd)))
     _run_output(cmd)
@@ -666,7 +671,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
         rebuild_kernel(num_cpus, config_path)
     except KernelConfigError as e:
         log.error('%s', e)
-        return 1
+        return 1 if fatal else 0
 
     kernel_list = _run_output(('eselect', '--colour=no', 'kernel', 'list'))
     lines = filter(None, map(str.strip, kernel_list.stdout.split('\n')))
@@ -677,6 +682,8 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
             old_kernel = re.split(r'^\[[0-9]+\]\s+', line)[1][6:]
             break
     if not old_kernel:
+        if not fatal:
+            return 0
         raise KernelConfigError('Failed to determine old kernel version')
     suffix = _get_kernel_version_suffix() or ''
     if _uefi_unified():
