@@ -254,7 +254,7 @@ def emerges() -> int:
     Runs the following steps:
 
     - ``emerge --oneshot --quiet --update portage``
-    - ``emerge --keep-going --with-bdeps=y --tree --quiet --update --deep --newuse @world``
+    - ``emerge --keep-going --tree --quiet --update --deep --newuse @world``
     - ``emerge --keep-going --quiet @live-rebuild``
     - ``emerge --keep-going --quiet @preserved-rebuild``
     - ``systemctl daemon-reexec`` if applicable
@@ -327,7 +327,7 @@ def emerges() -> int:
     if args.split_heavy:
         ask_arg += [f'--exclude={name}' for name in HEAVY_PACKAGES]
     _check_call([
-        'emerge', '--keep-going', '--with-bdeps=y', '--tree', '--quiet',
+        'emerge', '--keep-going', '--tree', '--quiet',
         '--update', '--deep', '--newuse', '@world'
     ] + ask_arg)
     if args.split_heavy:
