@@ -1,0 +1,9 @@
+[Unit]
+Description=Portage syncer
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/esync
+
+[Install]
+WantedBy=multi-user.target
