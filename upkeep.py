@@ -289,6 +289,11 @@ def emerges() -> int:
                         '--ask',
                         action='store_true',
                         help='Pass --ask to emerge command')
+    parser.add_argument(
+        '-v',
+        '--verbose',
+        action='store_true',
+        help='Pass --verbose to emerge and nable verbose messages')
     parser.add_argument('-L',
                         '--no-live-rebuild',
                         action='store_true',
@@ -322,6 +327,7 @@ def emerges() -> int:
     daemon_reexec = not args.no_daemon_reexec
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
+    verbose_arg = ['--verbose'] if args.verbose else []
 
     _check_call(('emerge', '--oneshot', '--quiet', '--update', 'portage'))
     if args.split_heavy:
@@ -329,7 +335,7 @@ def emerges() -> int:
     _check_call([
         'emerge', '--keep-going', '--tree', '--quiet', '--update', '--deep',
         '--newuse', '@world'
-    ] + ask_arg)
+    ] + ask_arg + verbose_arg)
     if args.split_heavy:
         for name in HEAVY_PACKAGES:
             try:
