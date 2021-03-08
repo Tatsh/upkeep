@@ -592,7 +592,14 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
                  ))
     for cmd in commands:
         log.info('Running: %s', ' '.join(map(quote, cmd)))
-        _run_output(cmd)
+        try:
+            _run_output(cmd)
+        except sp.CalledProcessError as e:
+            try:
+                _run_output(('eselect', 'kernel', 'set', '1'))
+            except sp.CalledProcessError:
+                pass
+            raise e
 
     if _has_grub() or _uefi_unified():
         kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
