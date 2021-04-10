@@ -15,7 +15,7 @@ def test_upgrade_kernel_no_eselect_output(sp_mocker: SubprocessMocker,
                                           mocker: MockFixture) -> None:
     sys.argv = [
         'emerges', '--no-live-rebuild', '--no-preserved-rebuild',
-        '--no-daemon-reexec'
+        '--no-daemon-reexec', '--fatal-upgrade-kernel',
     ]
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output='')
@@ -29,7 +29,7 @@ def test_upgrade_kernel_eselect_too_many_kernels(sp_mocker: SubprocessMocker,
                                                  mocker: MockFixture) -> None:
     sys.argv = [
         'emerges', '--no-live-rebuild', '--no-preserved-rebuild',
-        '--no-daemon-reexec'
+        '--no-daemon-reexec', '--fatal-upgrade-kernel',
     ]
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' *\n \n')
@@ -46,7 +46,7 @@ def test_upgrade_kernel_eselect_kernel_set_invalid_output_from_eselect(
         sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
     sys.argv = [
         'emerges', '--no-live-rebuild', '--no-preserved-rebuild',
-        '--no-daemon-reexec'
+        '--no-daemon-reexec', '--fatal-upgrade-kernel'
     ]
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [3] *\n [4] \n')

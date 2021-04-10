@@ -10,7 +10,7 @@ from .utils import SubprocessMocker
 
 def test_emerges_keyboard_interrupt(sp_mocker: SubprocessMocker) -> None:
     sp_mocker.add_output4(
-        ('emerge', '--oneshot', '--quiet', '--update', 'portage'),
+        ['emerge', '--oneshot', '--update', 'portage', '--quiet'],
         raise_=True,
         raise_cls=KeyboardInterrupt)
     sys.argv = ['emerges']
