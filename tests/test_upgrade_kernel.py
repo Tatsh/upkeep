@@ -3,7 +3,7 @@ from subprocess import CalledProcessError
 from typing import Any, Optional
 import sys
 
-from pytest_mock.plugin import MockFixture
+from pytest_mock.plugin import MockerFixture as MockFixture
 import pytest
 
 from upkeep import GRUB_CFG, _esp_path, _has_grub, emerges, upgrade_kernel
@@ -60,7 +60,7 @@ def test_upgrade_kernel_eselect_kernel_set_invalid_output_from_eselect(
 
 
 def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture,
-                                          sp_mocker: MockFixture) -> None:
+                                          sp_mocker: SubprocessMocker) -> None:
     mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.chdir')
     mocker.patch('upkeep.isfile', return_value=False)
@@ -75,7 +75,7 @@ def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture,
 
 
 def test_upgrade_kernel_rebuild_error_during_build(
-        mocker: MockFixture, sp_mocker: MockFixture) -> None:
+        mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
     mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.Path')
     mocker.patch('upkeep.chdir')
@@ -95,7 +95,7 @@ def test_upgrade_kernel_rebuild_error_during_build(
 
 
 def test_upgrade_kernel_rebuild_error_during_grub(
-        mocker: MockFixture, sp_mocker: MockFixture) -> None:
+        mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
     mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.Path')
     mocker.patch('upkeep.chdir')
@@ -115,7 +115,7 @@ def test_upgrade_kernel_rebuild_error_during_grub(
 
 
 def test_upgrade_kernel_rebuild_systemd_boot_no_esp_path(
-        mocker: MockFixture, sp_mocker: MockFixture) -> None:
+        mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
     _has_grub.cache_clear()
     mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.Path')
@@ -137,7 +137,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_esp_path(
 
 
 def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
-        mocker: MockFixture, sp_mocker: MockFixture) -> None:
+        mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
     _esp_path.cache_clear()
     mocker.patch('upkeep.glob', return_value=['/etc/profile'])
     mocker.patch('upkeep.Path')
@@ -160,7 +160,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
 
 
 def test_upgrade_kernel_rebuild_systemd_boot_normal(
-        mocker: MockFixture, sp_mocker: MockFixture) -> None:
+        mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
     # pylint: disable=no-self-use
     class FakeFile:
         def __init__(self, content: bytes = b''):
