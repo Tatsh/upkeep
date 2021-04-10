@@ -293,7 +293,7 @@ def emerges() -> int:
         '-v',
         '--verbose',
         action='store_true',
-        help='Pass --verbose to emerge and nable verbose messages')
+        help='Pass --verbose to emerge and enable verbose messages')
     parser.add_argument('-L',
                         '--no-live-rebuild',
                         action='store_true',
@@ -327,14 +327,14 @@ def emerges() -> int:
     daemon_reexec = not args.no_daemon_reexec
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
-    verbose_arg = ['--verbose'] if args.verbose else []
+    verbose_arg = ['--verbose'] if args.verbose else ['--quiet']
 
-    _check_call(('emerge', '--oneshot', '--quiet', '--update', 'portage'))
+    _check_call(['emerge', '--oneshot', '--update', 'portage'] + verbose_arg)
     if args.split_heavy:
         ask_arg += [f'--exclude={name}' for name in HEAVY_PACKAGES]
     _check_call([
-        'emerge', '--keep-going', '--tree', '--quiet', '--update', '--deep',
-        '--newuse', '@world'
+        'emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
+        '@world'
     ] + ask_arg + verbose_arg)
     if args.split_heavy:
         for name in HEAVY_PACKAGES:
@@ -409,7 +409,8 @@ def _maybe_sign_exes(esp_path: str, config_path: Optional[str] = None) -> None:
     output_bootx64 = path_join(esp_path, 'EFI', 'BOOT', 'BOOTX64.EFI')
     output_systemd_bootx64 = path_join(esp_path, 'EFI', 'systemd',
                                        'systemd-bootx64.efi')
-    db_key = db_crt = None
+    db_key: Optional[str] = None
+    db_crt: Optional[str] = None
     if config:
         db_key = config.get('systemd-boot', 'sign-key', fallback='')
         db_crt = config.get('systemd-boot', 'sign-cert', fallback='')
@@ -427,8 +428,8 @@ def _maybe_sign_exes(esp_path: str, config_path: Optional[str] = None) -> None:
         (tmp_bootx64, output_systemd_bootx64),
     )
     for input_file, output_path in files_to_sign:
-        cmd = ('sbsign', '--key', cast(str, db_key), '--cert',
-               cast(str, db_crt), input_file, '--output', output_path)
+        cmd = ('sbsign', '--key', db_key, '--cert', cast(str, db_crt),
+               input_file, '--output', output_path)
         log.info('Running: %s', ' '.join(map(quote, cmd)))
         _run_output(cmd)
         _run_output(('sbverify', '--cert', db_crt, output_path))
@@ -480,7 +481,7 @@ def _has_grub():
 
 
 @lru_cache()
-def _esp_path():
+def _esp_path() -> str:
     return _run_output(('bootctl', '-p')).stdout.split('\n')[0].strip()
 
 
