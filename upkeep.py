@@ -320,6 +320,10 @@ def emerges() -> int:
         '--config',
         default=DEFAULT_USER_CONFIG,
         help=f'Configuration file. Defaults to {DEFAULT_USER_CONFIG}')
+    parser.add_argument(
+        '--fatal-upgrade-kernel',
+        action='store_true',
+        help='Exit with status > 0 if kernel upgrade cannot be done')
     args = parser.parse_args()
 
     live_rebuild = not args.no_live_rebuild
@@ -363,7 +367,9 @@ def emerges() -> int:
             pass
 
     if up_kernel:
-        return upgrade_kernel(None, args.config, fatal=False)
+        return upgrade_kernel(None,
+                              args.config,
+                              fatal=args.fatal_upgrade_kernel)
 
     return 0
 
