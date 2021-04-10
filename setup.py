@@ -12,6 +12,7 @@ setup(name='upkeep',
       long_description=open('README.md').read(),
       long_description_content_type='text/markdown',
       py_modules=('upkeep', ),
+      python_requires='>=3.7',
       entry_points={
           'console_scripts': (
               'ecleans = upkeep:ecleans',
