@@ -56,7 +56,8 @@ INTEL_UC = '/boot/intel-uc.img'
 KERNEL_SRC_DIR = '/usr/src/linux'
 OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV = ('CONFIG_PROTECT', 'CONFIG_PROTECT_MASK', 'HOME', 'LANG',
-               'MAKEOPTS', 'PATH', 'SHELL', 'TERM', 'USE')
+               'MAKEOPTS', 'PATH', 'SHELL', 'SSH_AGENT_PID', 'SSH_AUTH_SOCK',
+               'TERM', 'USE')
 AnyCallable = Callable[..., Any]
 
 
