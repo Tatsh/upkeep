@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
 from pytest_mock.plugin import MockerFixture as MockFixture
-from upkeep import CONFIG_GZ, KernelConfigError, rebuild_kernel
-
 import pytest
+
+from upkeep import CONFIG_GZ, KernelConfigError, rebuild_kernel
 
 
 def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
