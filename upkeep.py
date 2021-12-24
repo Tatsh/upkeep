@@ -661,17 +661,16 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
     """
     log = _setup_logging_stdout()
     kernel_list = _run_output(('eselect', '--colour=no', 'kernel', 'list'))
-    lines = filter(None, map(str.strip, kernel_list.stdout.split('\n')))
+    lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
 
     if not any(re.search(r'\*$', line) for line in lines):
         log.info('Select a kernel to upgrade to (eselect kernel set ...).')
         return 1 if fatal else 0
-    if len(
-            list(
-                filter(
-                    None,
-                    _run_output(('eselect', '--colour=no', '--brief', 'kernel',
-                                 'list')).stdout.split('\n')))) > 2:
+
+    if len([
+            s for s in _run_output(('eselect', '--colour=no', '--brief',
+                                    'kernel', 'list')).stdout.splitlines() if s
+    ]) > 2:
         log.info('Unexpected number of lines (eselect --brief). Not updating '
                  'kernel.')
         return 1 if fatal else 0
@@ -695,7 +694,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
         return 1 if fatal else 0
 
     kernel_list = _run_output(('eselect', '--colour=no', 'kernel', 'list'))
-    lines = filter(None, map(str.strip, kernel_list.stdout.split('\n')))
+    lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
     old_kernel = None
     for line in (x for x in lines if not x.endswith('*')):
         m = re.search(r'^\[[0-9]+\]', line)
