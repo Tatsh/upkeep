@@ -14,6 +14,7 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
         raise Exception(x)
 
     mocker.patch('upkeep.isfile', new=isfile)
+    mocker.patch('upkeep.chdir')
     open_f = mocker.patch('upkeep.open')
     gzip_open = mocker.patch('upkeep.gzip.open')
     with pytest.raises(KernelConfigError):
