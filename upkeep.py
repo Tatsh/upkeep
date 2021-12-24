@@ -236,8 +236,7 @@ def ecleans() -> int:
         _check_call(('revdep-rebuild', '--quiet'))
         _check_call(('eclean-dist', '--deep'))
         _check_call(['rm', '-fR'] +
-                    list(map(str,
-                             Path('/var/tmp/portage').glob('*'))))
+                    [str(s) for s in Path('/var/tmp/portage').glob('*')])
     except sp.CalledProcessError as e:
         log = _setup_logging_stdout()
         log.error('%s failed', e.cmd)
@@ -437,7 +436,7 @@ def _maybe_sign_exes(esp_path: str, config_path: Optional[str] = None) -> None:
     for input_file, output_path in files_to_sign:
         cmd = ('sbsign', '--key', db_key, '--cert', cast(str, db_crt),
                input_file, '--output', output_path)
-        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        log.info('Running: %s', ' '.join(quote(c) for c in cmd))
         _run_output(cmd)
         _run_output(('sbverify', '--cert', db_crt, output_path))
     for input_file, _ in files_to_sign:
@@ -508,7 +507,7 @@ def _update_systemd_boot(config_path: Optional[str] = None) -> int:
         suffix = _get_kernel_version_suffix() or ''
         cmd = ('kernel-install', 'add', f'{kernel_version}{suffix}',
                f'/boot/vmlinuz-{kernel_version}{suffix}')
-        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        log.info('Running: %s', ' '.join(quote(c) for c in cmd))
         _run_output(cmd)
     _maybe_sign_exes(_esp_path(), config_path)
     # Clean up /boot
@@ -587,7 +586,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
          '@module-rebuild', '@x11-module-rebuild'),
     )
     for cmd in commands:
-        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        log.info('Running: %s', ' '.join(quote(c) for c in cmd))
         _run_output(cmd)
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
@@ -599,7 +598,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
                      'install',
                  ))
     for cmd in commands:
-        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        log.info('Running: %s', ' '.join(quote(c) for c in cmd))
         try:
             _run_output(cmd)
         except sp.CalledProcessError as e:
@@ -612,7 +611,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
     if _has_grub() or _uefi_unified():
         kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
         cmd = ('dracut', '--force', '--kver', kver_arg)
-        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        log.info('Running: %s', ' '.join(quote(c) for c in cmd))
         try:
             _run_output(cmd)
         except sp.CalledProcessError as e:
@@ -685,7 +684,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
         log.info('Unexpected number of lines. Not updating kernel.')
         return 1 if fatal else 0
     cmd: Tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
-    log.info('Running: %s', ' '.join(map(quote, cmd)))
+    log.info('Running: %s', ' '.join(quote(c) for c in cmd))
     _run_output(cmd)
     try:
         rebuild_kernel(num_cpus, config_path)
@@ -712,7 +711,7 @@ def upgrade_kernel(num_cpus: Optional[int] = None,
             path.unlink()
     else:
         cmd = ('kernel-install', 'remove', f'{old_kernel}{suffix}')
-        log.info('Running: %s', ' '.join(map(quote, cmd)))
+        log.info('Running: %s', ' '.join(quote(c) for c in cmd))
         _run_output(cmd)
 
     return 0
