@@ -15,7 +15,7 @@ def test_upgrade_kernel_no_eselect_output(sp_mocker: SubprocessMocker,
                                           mocker: MockFixture) -> None:
     sys.argv = [
         'emerges', '--no-live-rebuild', '--no-preserved-rebuild',
-        '--no-daemon-reexec', '--fatal-upgrade-kernel',
+        '--no-daemon-reexec', '--fatal-upgrade-kernel'
     ]
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output='')
@@ -29,7 +29,7 @@ def test_upgrade_kernel_eselect_too_many_kernels(sp_mocker: SubprocessMocker,
                                                  mocker: MockFixture) -> None:
     sys.argv = [
         'emerges', '--no-live-rebuild', '--no-preserved-rebuild',
-        '--no-daemon-reexec', '--fatal-upgrade-kernel',
+        '--no-daemon-reexec', '--fatal-upgrade-kernel'
     ]
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' *\n \n')
@@ -80,6 +80,8 @@ def test_upgrade_kernel_rebuild_error_during_build(
     mocker.patch('upkeep.Path')
     mocker.patch('upkeep.chdir')
     mocker.patch('upkeep.open')
+    mocker.patch('upkeep.realpath',
+                 return_value='/usr/src/linux-5.6.14-gentoo')
     mocker.patch('upkeep.isfile', return_value=True)
     mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
     mocker.patch('upkeep.sp.check_call', side_effect=sp_mocker.get_output)
@@ -89,7 +91,8 @@ def test_upgrade_kernel_rebuild_error_during_build(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' [1] linux-5.6.14-gentoo *\n \n')
     sp_mocker.add_output3(('bootctl', '-p'), stdout_output='/efi')
-    sp_mocker.add_output3(('dracut', '--force', '--kver', ''), raise_=True)
+    sp_mocker.add_output3(('dracut', '--force', '--kver', '5.6.14-gentoo'),
+                          raise_=True)
     with pytest.raises(CalledProcessError):
         upgrade_kernel()
 
