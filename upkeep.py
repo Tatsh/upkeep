@@ -187,18 +187,20 @@ def esync() -> int:
     """
     log = _setup_logging_stdout()
     parser = argparse.ArgumentParser(__name__)
+    parser.add_argument('-d', '--debug', action='store_true')
     parser.add_argument('-l',
                         '--run-layman',
                         action='store_true',
                         help='Run "layman -S" if installed')
     args = parser.parse_args()
+    runner = _run_output if not args.debug else sp.run
     if args.run_layman:
         try:
             _run_output(('which', 'layman'))
         except sp.CalledProcessError:
             log.error('You need to have app-portage/layman installed')
             return 1
-        _run_output(('layman', '-S'))
+        runner(('layman', '-S'))
     try:
         _run_output(('which', 'eix-sync'))
     except sp.CalledProcessError as e:
@@ -206,8 +208,9 @@ def esync() -> int:
             log.error(
                 'You need to have app-portage/eix installed for this to work')
         return 1
+    args = ('-a',) if args.debug else ('-a', '-q', '-H')
     try:
-        _run_output(('eix-sync', '-qH'))
+        runner(('eix-sync',) + args)
     except sp.CalledProcessError as e:
         return e.returncode
     return 0
