@@ -303,6 +303,7 @@ def emerges() -> int:
         '--fatal-upgrade-kernel',
         action='store_true',
         help='Exit with status > 0 if kernel upgrade cannot be done')
+    parser.add_argument('-e', '--exclude', nargs='*', metavar='ATOM')
     args = parser.parse_args()
 
     live_rebuild = not args.no_live_rebuild
@@ -311,12 +312,13 @@ def emerges() -> int:
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
     verbose_arg = ['--verbose'] if args.verbose else ['--quiet']
+    exclude_arg = [f'--exclude={x}' for x in args.exclude]
 
     _check_call(['emerge', '--oneshot', '--update', 'portage'] + verbose_arg)
     _check_call([
         'emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
         '@world'
-    ] + ask_arg + verbose_arg)
+    ] + ask_arg + verbose_arg + exclude_arg)
 
     if live_rebuild:
         _check_call(('emerge', '--keep-going', '--quiet', '@live-rebuild'))
