@@ -31,7 +31,7 @@ def test_esync_layman(sp_mocker: SubprocessMocker) -> None:
 
 
 def test_esync_eix_sync_failure(sp_mocker: SubprocessMocker):
-    sp_mocker.add_output3(('eix-sync', '-qH'), raise_=True)
+    sp_mocker.add_output3(('eix-sync', '-a', '-q', '-H'), raise_=True)
     sys.argv = ['esync']
     with patch('upkeep.sp.run', side_effect=sp_mocker.get_output):
         assert esync() == 255
