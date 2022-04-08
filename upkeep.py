@@ -248,10 +248,6 @@ def emerges() -> int:
     - ``systemctl daemon-reexec`` if applicable
     - upgrade kernel
 
-    In the second step, if ``-H`` is not passed, heavier packages like Clang
-    and Chromium are built separately, to hopefully allow a machine to remain
-    responsive while building packages.
-
     This function understands the following CLI flags:
 
     - ``-a`` / ``--ask``: Pass ``--ask`` to the ``emerge @world`` command
@@ -260,7 +256,6 @@ def emerges() -> int:
       step
     - ``-D`` / ``--no-daemon-reexec``: Skip ``systemctl daemon-reexec`` step
     - ``-U`` / ``--no-upgrade-kernel``: Skip upgrading the kernel
-    - ``-H`` / ``--split-heavy``: Split heavy packages to be built separately.
 
     Returns
     -------

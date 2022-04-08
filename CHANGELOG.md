@@ -20,23 +20,6 @@ and this project adheres to
   sign-cert = my-db.crt
   ```
 
-* Added experimental `-H` or `--split-heavy` option to `emerges`. This will
-  cause `emerges` to attempt to build *heavier* packages like Chromium
-  after the leaner packages are built. This may cause issues if there are two
-  heavy packages that are also dependent on each other. Currently, these
-  packages are considered *heavy*:
-  * `app-office/libreoffice`
-  * `dev-java/icedtea`
-  * `dev-qt/qtwebengine`
-  * `dev-qt/qtwebkit`
-  * `kde-frameworks/kdewebkit`
-  * `mail-client/thunderbird`
-  * `net-libs/webkit-gtk`
-  * `sys-devel/clang`
-  * `sys-devel/gcc`
-  * `sys-devel/llvm`
-  * `www-client/chromium`
-  * `www-client/firefox`
 * `ecleans` no longer ignores exit codes from the commands it executes.
 * Improved `^C` (Ctrl+C) interruptions to be more user friendly.
 * Added [documentation](https://upkeep.readthedocs.io/en/latest/) to all public
