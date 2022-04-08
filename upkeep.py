@@ -29,21 +29,6 @@ __all__ = (
     'upgrade_kernel_command',
 )
 
-HEAVY_PACKAGES = (
-    'app-office/libreoffice',
-    'dev-java/icedtea',
-    'dev-qt/qtwebengine',
-    'dev-qt/qtwebkit',
-    'kde-frameworks/kdewebkit',
-    'mail-client/thunderbird',
-    'net-libs/webkit-gtk',
-    'sys-devel/clang',
-    'sys-devel/gcc',
-    'sys-devel/llvm',
-    'www-client/chromium',
-    'www-client/firefox',
-)
-
 
 class KernelConfigError(Exception):
     pass
@@ -314,10 +299,6 @@ def emerges() -> int:
                         '--no-upgrade-kernel',
                         action='store_true',
                         help='Do not attempt to upgrade kernel')
-    parser.add_argument('-H',
-                        '--split-heavy',
-                        action='store_true',
-                        help='Split heavy packages to be built separately')
     parser.add_argument(
         '-c',
         '--config',
@@ -337,20 +318,10 @@ def emerges() -> int:
     verbose_arg = ['--verbose'] if args.verbose else ['--quiet']
 
     _check_call(['emerge', '--oneshot', '--update', 'portage'] + verbose_arg)
-    if args.split_heavy:
-        ask_arg += [f'--exclude={name}' for name in HEAVY_PACKAGES]
     _check_call([
         'emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
         '@world'
     ] + ask_arg + verbose_arg)
-    if args.split_heavy:
-        for name in HEAVY_PACKAGES:
-            try:
-                _check_call(('eix', '-I', '-e', name))
-            except sp.CalledProcessError:
-                continue
-            _check_call(('emerge', '--oneshot', '--keep-going', '--tree',
-                         '--quiet', '--update', '--deep', '--newuse', name))
 
     if live_rebuild:
         _check_call(('emerge', '--keep-going', '--quiet', '@live-rebuild'))

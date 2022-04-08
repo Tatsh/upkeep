@@ -100,14 +100,14 @@ class SubprocessMocker:
             else:
                 self._outputs[key] = raise_cls(raise_message)
 
-    def add_output2(self, *args, **kwargs) -> None:
+    def add_output2(self, *args: Any, **kwargs: Any) -> None:
         from upkeep import _minenv
 
         kwargs.pop('check', None)
         kwargs.pop('env', None)
         self.add_output(check=True, env=_minenv(), *args, **kwargs)
 
-    def add_output3(self, *args, **kwargs) -> None:
+    def add_output3(self, *args: Any, **kwargs: Any) -> None:
         from upkeep import _minenv
 
         kwargs.pop('check', None)
@@ -121,7 +121,7 @@ class SubprocessMocker:
                         *args,
                         **kwargs)
 
-    def add_output4(self, *args, **kwargs) -> None:
+    def add_output4(self, *args: Any, **kwargs: Any) -> None:
         from upkeep import _minenv
 
         kwargs.pop('env', None)
