@@ -58,7 +58,9 @@ def graceful_interrupt(_func: Optional[AnyCallable] = None) -> AnyCallable:
     Handles KeyboardInterrupt gracefully since stack trace is usually not
     needed for this event.
     """
+
     def decorator_graceful(func: AnyCallable) -> AnyCallable:
+
         @wraps(func)
         def inner(*args: Any, **kwargs: Any) -> Any:
             try:
@@ -80,7 +82,9 @@ def umask(_func: Optional[AnyCallable] = None,
           new_umask: int,
           restore: bool = False) -> AnyCallable:
     """Sets the umask before calling the decorated function."""
+
     def decorator_umask(func: AnyCallable) -> AnyCallable:
+
         @wraps(func)
         def inner(*args: Any, **kwargs: Any) -> Any:
             old_umask = set_umask(new_umask)
@@ -178,7 +182,8 @@ def esync() -> int:
                         action='store_true',
                         help='Run "layman -S" if installed')
     args = parser.parse_args()
-    runner = _run_output if not args.debug else sp.run
+    runner = cast(Callable[..., Any],
+                  _run_output if not args.debug else sp.run)
     if args.run_layman:
         try:
             _run_output(('which', 'layman'))
@@ -193,9 +198,9 @@ def esync() -> int:
             log.error(
                 'You need to have app-portage/eix installed for this to work')
         return 1
-    args = ('-a',) if args.debug else ('-a', '-q', '-H')
+    sync_args = ('-a', ) if args.debug else ('-a', '-q', '-H')
     try:
-        runner(('eix-sync',) + args, check=True)
+        runner(('eix-sync', ) + sync_args, check=True)
     except sp.CalledProcessError as e:
         return e.returncode
     return 0
@@ -705,6 +710,7 @@ def kernel_command(
     callable
         Callable that takes no parameters and returns an integer.
     """
+
     @graceful_interrupt
     @umask(new_umask=0o022)
     def ret() -> int:
