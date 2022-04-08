@@ -185,7 +185,7 @@ def esync() -> int:
         except sp.CalledProcessError:
             log.error('You need to have app-portage/layman installed')
             return 1
-        runner(('layman', '-S'))
+        runner(('layman', '-S'), check=True)
     try:
         _run_output(('which', 'eix-sync'))
     except sp.CalledProcessError as e:
@@ -195,7 +195,7 @@ def esync() -> int:
         return 1
     args = ('-a',) if args.debug else ('-a', '-q', '-H')
     try:
-        runner(('eix-sync',) + args)
+        runner(('eix-sync',) + args, check=True)
     except sp.CalledProcessError as e:
         return e.returncode
     return 0
