@@ -190,7 +190,10 @@ def esync() -> int:
         except sp.CalledProcessError:
             log.error('You need to have app-portage/layman installed')
             return 1
-        runner(('layman', '-S'), check=True)
+        try:
+            runner(('layman', '-S'), check=True)
+        except sp.CalledProcessError as e:
+            return e.returncode
     try:
         _run_output(('which', 'eix-sync'))
     except sp.CalledProcessError as e:
@@ -317,7 +320,7 @@ def emerges() -> int:
     up_kernel = not args.no_upgrade_kernel
     ask_arg = ['--ask'] if args.ask else []
     verbose_arg = ['--verbose'] if args.verbose else ['--quiet']
-    exclude_arg = [f'--exclude={x}' for x in args.exclude]
+    exclude_arg = [f'--exclude={x}' for x in args.exclude or []]
 
     _check_call(['emerge', '--oneshot', '--update', 'portage'] + verbose_arg)
     _check_call([
