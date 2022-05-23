@@ -371,12 +371,15 @@ def _update_grub() -> int:
 def _bootctl_update_or_install() -> None:
     try:
         _run_output(('bootctl', 'update'))
-    except sp.CalledProcessError:
-        try:
-            _run_output(('bootctl', 'install'))
-        except sp.CalledProcessError as e:
-            if 'Failed to test system token validity' not in e.stderr:
-                raise e
+    except sp.CalledProcessError as e:
+        ok = True
+        for line in e.stderr.splitlines():
+            if ('Failed to test system token validity' in line
+                    or line.startswith('Skipping "')):
+                continue
+            ok = False
+        if not ok:
+            _run_output(('bootctl', 'install', '--graceful'))
 
 
 def _get_temp_filename(*args: Any, **kwargs: Any) -> str:
