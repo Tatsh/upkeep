@@ -216,8 +216,8 @@ def ecleans() -> int:
     Runs the following clean up commands:
 
     - ``emerge --depclean --quiet``
-    - ``emerge --quiet @preserved-rebuild``
-    - ``revdep-rebuild --quiet``
+    - ``emerge --usepkg=n --quiet @preserved-rebuild``
+    - ``revdep-rebuild --quiet` -- --usepkg=n`
     - ``eclean-dist --deep``
     - ``rm -fR /var/tmp/portage/*``
 
@@ -228,8 +228,8 @@ def ecleans() -> int:
     """
     try:
         _check_call(('emerge', '--depclean', '--quiet'))
-        _check_call(('emerge', '--quiet', '@preserved-rebuild'))
-        _check_call(('revdep-rebuild', '--quiet'))
+        _check_call(('emerge', '--usepkg=n', '--quiet', '@preserved-rebuild'))
+        _check_call(('revdep-rebuild', '--quiet', '--', '--usepkg=n'))
         _check_call(('eclean-dist', '--deep'))
         _check_call(['rm', '-fR'] +
                     [str(s) for s in Path('/var/tmp/portage').glob('*')])
