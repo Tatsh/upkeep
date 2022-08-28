@@ -512,7 +512,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
     - ``make oldconfig``
     - ``make``
     - ``make modules_install``
-    - ``emerge --quiet --keep-going --quiet-fail --verbose @module-rebuild @x11-module-rebuild``
+    - ``emerge --usepkg=n --quiet --keep-going --quiet-fail --verbose @module-rebuild @x11-module-rebuild``
     - Archives the old kernel and related files in ``/boot`` to the old kernels
       directory.
     - ``make install``
@@ -564,8 +564,8 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
     commands: Tuple[Tuple[str, ...], ...] = (
         ('make', f'-j{num_cpus}'),
         ('make', 'modules_install'),
-        ('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
-         '@module-rebuild', '@x11-module-rebuild'),
+        ('emerge', '--usepkg=n', '--quiet', '--keep-going', '--quiet-fail',
+         '--verbose', '@module-rebuild', '@x11-module-rebuild'),
     )
     for cmd in commands:
         log.info('Running: %s', ' '.join(quote(c) for c in cmd))
