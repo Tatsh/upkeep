@@ -164,7 +164,6 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
 
 def test_upgrade_kernel_rebuild_systemd_boot_normal(
         mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
-    # pylint: disable=no-self-use
     class FakeFile:
         def __init__(self, content: bytes = b''):
             self.content = content
@@ -210,7 +209,6 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
         def joinpath(self, *args: Any):  # pylint: disable=unused-argument
             return self
 
-    # pylint: enable=no-self-use
     mocker.patch('upkeep.glob', return_value=[])
     mocker.patch('upkeep.Path', side_effect=PathMock)
     mocker.patch('upkeep.shutil.rmtree')
