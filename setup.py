@@ -61,9 +61,9 @@ with open('README.md') as f:
         long_description_content_type='text/markdown',
         name='upkeep',
         py_modules=['upkeep'],
-        python_requires='>=3.8',
+        python_requires='>=3.9',
         test_suite='tests',
         tests_require=('coveralls', 'pytest', 'pytest-cov', 'pytest-mock'),
         url='https://github.com/Tatsh/upkeep',
-        version='1.3.0',
+        version='1.3.1',
     )
