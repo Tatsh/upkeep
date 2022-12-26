@@ -43,6 +43,9 @@ OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV = ('CONFIG_PROTECT', 'CONFIG_PROTECT_MASK', 'HOME', 'LANG',
                'MAKEOPTS', 'PATH', 'SHELL', 'SSH_AGENT_PID', 'SSH_AUTH_SOCK',
                'TERM', 'USE')
+# --getbinpkg=n is broken when FEATURES=getbinpkg
+# https://bugs.gentoo.org/759067
+DISABLE_GETBINPKG_ENV_DICT = dict(FEATURES='-getbinpkg')
 AnyCallable = Callable[..., Any]
 
 
@@ -228,8 +231,10 @@ def ecleans() -> int:
     """
     try:
         _check_call(('emerge', '--depclean', '--quiet'))
-        _check_call(('emerge', '--usepkg=n', '--quiet', '@preserved-rebuild'))
-        _check_call(('revdep-rebuild', '--quiet', '--', '--usepkg=n'))
+        _check_call(('emerge', '--usepkg=n', '--quiet', '@preserved-rebuild'),
+                    env=DISABLE_GETBINPKG_ENV_DICT)
+        _check_call(('revdep-rebuild', '--quiet', '--', '--usepkg=n'),
+                    env=DISABLE_GETBINPKG_ENV_DICT)
         _check_call(('eclean-dist', '--deep'))
         _check_call(['rm', '-fR'] +
                     [str(s) for s in Path('/var/tmp/portage').glob('*')])
@@ -561,15 +566,18 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
     suffix = _get_kernel_version_suffix() or ''
     log.info('Running: make oldconfig')
     _check_call(('make', 'oldconfig'))
-    commands: Tuple[Tuple[str, ...], ...] = (
-        ('make', f'-j{num_cpus}'),
-        ('make', 'modules_install'),
-        ('emerge', '--usepkg=n', '--quiet', '--keep-going', '--quiet-fail',
-         '--verbose', '@module-rebuild', '@x11-module-rebuild'),
+    commands1: Tuple[Tuple[Tuple[str, ...], Dict[str, str]], ...] = (
+        (('make', f'-j{num_cpus}'), {}),
+        (('make', 'modules_install'), {}),
+        (('emerge', '--usepkg=n', '--quiet', '--keep-going', '--quiet-fail',
+          '--verbose', '@module-rebuild', '@x11-module-rebuild'),
+         DISABLE_GETBINPKG_ENV_DICT),
     )
-    for cmd in commands:
-        log.info('Running: %s', ' '.join(quote(c) for c in cmd))
-        _run_output(cmd)
+    for cmd, env in commands1:
+        log.info('Running: env %s %s',
+                 ' '.join(quote(f'{k}={v}') for k, v in env.items()),
+                 ' '.join(quote(c) for c in cmd))
+        _run_output(cmd, env=env)
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
     commands = (('find', '/boot', '-maxdepth', '1', '(', '-name',
