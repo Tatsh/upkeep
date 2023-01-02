@@ -579,7 +579,7 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
         log.info('Running: env %s %s',
                  ' '.join(quote(f'{k}={v}') for k, v in env.items()),
                  ' '.join(quote(c) for c in cmd))
-        _run_output(cmd, env=env)
+        _run_output(cmd, env={**_minenv(), **env})
 
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
     commands = (('find', '/boot', '-maxdepth', '1', '(', '-name',
