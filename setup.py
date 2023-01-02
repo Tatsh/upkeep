@@ -65,5 +65,5 @@ with open('README.md') as f:
         test_suite='tests',
         tests_require=('coveralls', 'pytest', 'pytest-cov', 'pytest-mock'),
         url='https://github.com/Tatsh/upkeep',
-        version='1.3.1',
+        version='1.3.2',
     )
