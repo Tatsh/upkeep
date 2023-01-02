@@ -121,22 +121,24 @@ def _check_call(args: Any,
                 text: bool = True,
                 env: Optional[Mapping[str, str]] = None,
                 **kwargs: Any) -> int:
-    return sp.check_call(args,
-                         universal_newlines=text,
-                         env=env or _minenv(),
-                         **kwargs)
+    return sp.run(args,
+                  check=True,
+                  universal_newlines=text,
+                  env=env or _minenv(),
+                  **kwargs)
 
 
 def _suppress_output(args: Any,
                      text: bool = True,
                      env: Optional[Mapping[str, str]] = None,
                      **kwargs: Any) -> int:
-    return sp.check_call(args,
-                         stdout=sp.DEVNULL,
-                         stderr=sp.DEVNULL,
-                         universal_newlines=text,
-                         env=env or _minenv(),
-                         **kwargs)
+    return sp.run(args,
+                  check=True,
+                  stdout=sp.DEVNULL,
+                  stderr=sp.DEVNULL,
+                  universal_newlines=text,
+                  env=env or _minenv(),
+                  **kwargs)
 
 
 @lru_cache()
