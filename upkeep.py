@@ -571,8 +571,8 @@ def rebuild_kernel(num_cpus: Optional[int] = None,
     commands1: Tuple[Tuple[Tuple[str, ...], Dict[str, str]], ...] = (
         (('make', f'-j{num_cpus}'), {}),
         (('make', 'modules_install'), {}),
-        (('emerge', '--usepkg=n', '--quiet', '--keep-going', '--quiet-fail',
-          '--verbose', '@module-rebuild', '@x11-module-rebuild'),
+        (('emerge', '--usepkg=n', '--quiet', '--keep-going', '--verbose',
+          '@module-rebuild', '@x11-module-rebuild'),
          DISABLE_GETBINPKG_ENV_DICT),
     )
     for cmd, env in commands1:
