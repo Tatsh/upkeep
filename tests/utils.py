@@ -79,9 +79,9 @@ class SubprocessMocker:
         raise_ = kwargs.pop('raise_', False)
         raise_cls = kwargs.pop('raise_cls', sp.CalledProcessError)
         raise_message = kwargs.pop('raise_message', 'test exception')
-        cls: Union[Type[io.StringIO], Type[io.BytesIO]] = io.StringIO
-        if isinstance(stdout_output, bytes) or isinstance(
-                stderr_output, bytes):
+        cls: Type[io.StringIO] | Type[io.BytesIO] = io.StringIO
+        if (isinstance(stdout_output, bytes) or isinstance(
+                stderr_output, bytes)):
             if (isinstance(stdout_output, bytes)
                     and not isinstance(stderr_output, bytes)) or (
                         isinstance(stderr_output, bytes)
@@ -101,14 +101,14 @@ class SubprocessMocker:
                 self._outputs[key] = raise_cls(raise_message)
 
     def add_output2(self, *args: Any, **kwargs: Any) -> None:
-        from upkeep import _minenv
+        from upkeep import CommandRunner
 
         kwargs.pop('check', None)
         kwargs.pop('env', None)
-        self.add_output(check=True, env=_minenv(), *args, **kwargs)
+        self.add_output(check=True, env=CommandRunner._minenv(), *args, **kwargs)
 
     def add_output3(self, *args: Any, **kwargs: Any) -> None:
-        from upkeep import _minenv
+        from upkeep import CommandRunner
 
         kwargs.pop('check', None)
         kwargs.pop('env', None)
@@ -117,16 +117,16 @@ class SubprocessMocker:
                         universal_newlines=True,
                         stdout=sp.PIPE,
                         stderr=sp.PIPE,
-                        env=_minenv(),
+                        env=CommandRunner._minenv(),
                         *args,
                         **kwargs)
 
     def add_output4(self, *args: Any, **kwargs: Any) -> None:
-        from upkeep import _minenv
+        from upkeep import CommandRunner
 
         kwargs.pop('env', None)
         kwargs.pop('universal_newlines', None)
         self.add_output(universal_newlines=True,
-                        env=_minenv(),
+                        env=CommandRunner._minenv(),
                         *args,
                         **kwargs)
