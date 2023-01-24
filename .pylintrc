@@ -6,18 +6,16 @@ jobs=0
 load-plugins=pylint_quotes
 
 [MESSAGES CONTROL]
-disable=logging-too-many-args,
-        missing-class-docstring,
+disable=missing-class-docstring,
         missing-function-docstring,
         missing-module-docstring,
-        unspecified-encoding,
-        use-dict-literal
+        unspecified-encoding
 
 [REFACTORING]
 max-nested-blocks=6
 
 [LOGGING]
-logging-format-style=new
+; logging-format-style=new
 logging-modules=logging,
                 loguru
 
