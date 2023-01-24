@@ -516,7 +516,8 @@ def _update_systemd_boot(config_path: str | None) -> int:
     return 0
 
 
-def rebuild_kernel(num_cpus: int | None, config_path: str | None) -> int:
+def rebuild_kernel(num_cpus: int | None = None,
+                   config_path: str | None = None) -> int:
     # pylint: disable=line-too-long
     """
     Rebuilds the kernel.
@@ -615,8 +616,8 @@ def rebuild_kernel(num_cpus: int | None, config_path: str | None) -> int:
     return _update_systemd_boot(config_path)
 
 
-def upgrade_kernel(num_cpus: int | None,
-                   config_path: str | None,
+def upgrade_kernel(num_cpus: int | None = None,
+                   config_path: str | None = None,
                    fatal: bool | None = True) -> int:
     """
     Upgrades the kernel.
