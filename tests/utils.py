@@ -15,9 +15,9 @@ def _make_key(*args: Any, **kwargs: Any) -> str:
 
 
 class SubprocessMocker:
-    def __init__(self):
+    def __init__(self) -> None:
         self._outputs: Dict[str, Any] = {}
-        self.history = []
+        self.history: list[str] = []
 
     def get_output(self, *args: Any, **kwargs: Any) -> Any:
         self.history.append(' '.join(args[0]))

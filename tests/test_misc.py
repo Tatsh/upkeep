@@ -18,8 +18,8 @@ def test_kernel_command():
     assert kernel_command(lambda x, y: 2)() == 2
 
 
-def test_kernel_command_raise():
-    def raise_(_x: int, _y: int) -> int:
+def test_kernel_command_raise() -> None:
+    def raise_(_x: int | None, _y: str | None) -> int:
         raise KernelConfigError()
 
     assert kernel_command(raise_)() == 1
