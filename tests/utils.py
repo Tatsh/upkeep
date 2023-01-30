@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # pylint: disable=too-few-public-methods,import-outside-toplevel
-from typing import Sequence, TypedDict
+from typing import Mapping, Sequence, TypedDict
 import json
 import subprocess as sp
 
@@ -19,7 +19,7 @@ class MakeKeyKwargsOptional(TypedDict, total=False):
 
 
 class MakeKeyKwargs(MakeKeyKwargsOptional):
-    env: dict[str, str]
+    env: Mapping[str, str]
 
 
 def _make_key(*args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]) -> str:
@@ -83,7 +83,7 @@ class SubprocessMocker:
                    stdout_output: str | None = None,
                    stdout: int = -1,
                    stderr: int = -1,
-                   env: dict[str, str],
+                   env: Mapping[str, str],
                    check: bool = False,
                    returncode: int = 0,
                    raise_: bool = False) -> None:
