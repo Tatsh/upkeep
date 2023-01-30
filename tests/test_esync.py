@@ -2,7 +2,7 @@
 from unittest.mock import patch
 import sys
 
-from upkeep import esync
+from upkeep.commands import esync
 
 from .utils import SubprocessMocker
 

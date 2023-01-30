@@ -2,10 +2,13 @@
 from pytest_mock.plugin import MockerFixture as MockFixture
 import pytest
 
-from upkeep import CONFIG_GZ, KernelConfigError, rebuild_kernel
+from upkeep.constants import CONFIG_GZ
+from upkeep.exceptions import KernelConfigError
+from upkeep.utils.kernel import rebuild_kernel
 
 
 def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
+
     def isfile(x: str) -> bool:
         if x == '.config':
             return False

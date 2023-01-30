@@ -1,20 +1,21 @@
 # SPDX-License-Identifier: MIT
 # pylint: disable=too-few-public-methods,import-outside-toplevel
-from typing import Any, Dict, Optional, Type, Union
+from typing import Any, BinaryIO, Dict, Optional, TextIO, Type, overload
 import io
 import json
 import subprocess as sp
 
-from typing_extensions import overload
+from Levenshtein import distance
 
 __all__ = ('SubprocessMocker', )
 
 
-def _make_key(*args: Any, **kwargs: Any) -> str:
+def _make_key(*args: list[Any], **kwargs: dict[str, Any]) -> str:
     return json.dumps({**kwargs, **{'args': args}}, sort_keys=True)
 
 
 class SubprocessMocker:
+
     def __init__(self) -> None:
         self._outputs: Dict[str, Any] = {}
         self.history: list[str] = []
@@ -25,6 +26,15 @@ class SubprocessMocker:
         try:
             val = self._outputs[key]
         except KeyError:
+            print(f'Failed to find key:\n{key}')
+            existing_keys = list(self._outputs.keys())
+            if existing_keys:
+                possible_keys: list[tuple[int, int]] = []
+                for i, existing_key in enumerate(self._outputs.keys()):
+                    possible_keys.append((distance(existing_key, key), i))
+                possible_keys = sorted(possible_keys)
+                print(f'Closest match:\n{existing_keys[possible_keys[0][1]]}')
+                print(f'Distance: {possible_keys[0][0]}')
             return None
         if isinstance(val, BaseException):
             raise val
@@ -34,9 +44,10 @@ class SubprocessMocker:
         self._outputs = {}
 
     class _FakeCompletedProcess:
+
         @overload
         def __init__(self,
-                     io_cls: Type[io.BytesIO],
+                     io_cls: Type[BinaryIO],
                      stdout_output: Optional[bytes] = ...,
                      stderr_output: Optional[bytes] = ...,
                      returncode: int = 0,
@@ -45,7 +56,7 @@ class SubprocessMocker:
 
         @overload
         def __init__(self,
-                     io_cls: Type[io.StringIO],
+                     io_cls: Type[TextIO],
                      stdout_output: Optional[str] = ...,
                      stderr_output: Optional[str] = ...,
                      returncode: int = 0,
@@ -79,9 +90,9 @@ class SubprocessMocker:
         raise_ = kwargs.pop('raise_', False)
         raise_cls = kwargs.pop('raise_cls', sp.CalledProcessError)
         raise_message = kwargs.pop('raise_message', 'test exception')
-        cls: Type[io.StringIO] | Type[io.BytesIO] = io.StringIO
-        if (isinstance(stdout_output, bytes) or isinstance(
-                stderr_output, bytes)):
+        cls: Type[BinaryIO] | Type[TextIO] = io.StringIO
+        if (isinstance(stdout_output, bytes)
+                or isinstance(stderr_output, bytes)):
             if (isinstance(stdout_output, bytes)
                     and not isinstance(stderr_output, bytes)) or (
                         isinstance(stderr_output, bytes)
@@ -101,14 +112,14 @@ class SubprocessMocker:
                 self._outputs[key] = raise_cls(raise_message)
 
     def add_output2(self, *args: Any, **kwargs: Any) -> None:
-        from upkeep import CommandRunner
+        from upkeep.utils import minenv
 
         kwargs.pop('check', None)
         kwargs.pop('env', None)
-        self.add_output(check=True, env=CommandRunner._minenv(), *args, **kwargs)
+        self.add_output(check=True, env=minenv(), *args, **kwargs)
 
     def add_output3(self, *args: Any, **kwargs: Any) -> None:
-        from upkeep import CommandRunner
+        from upkeep.utils import minenv
 
         kwargs.pop('check', None)
         kwargs.pop('env', None)
@@ -117,16 +128,13 @@ class SubprocessMocker:
                         universal_newlines=True,
                         stdout=sp.PIPE,
                         stderr=sp.PIPE,
-                        env=CommandRunner._minenv(),
+                        env=minenv(),
                         *args,
                         **kwargs)
 
     def add_output4(self, *args: Any, **kwargs: Any) -> None:
-        from upkeep import CommandRunner
+        from upkeep.utils import minenv
 
         kwargs.pop('env', None)
         kwargs.pop('universal_newlines', None)
-        self.add_output(universal_newlines=True,
-                        env=CommandRunner._minenv(),
-                        *args,
-                        **kwargs)
+        self.add_output(universal_newlines=True, env=minenv(), *args, **kwargs)

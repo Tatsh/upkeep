@@ -3,7 +3,7 @@ from unittest.mock import patch
 import subprocess as sp
 import sys
 
-from upkeep import emerges
+from upkeep.commands import emerges
 
 from .utils import SubprocessMocker
 

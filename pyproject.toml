@@ -1,0 +1,41 @@
+[tool.poetry]
+name = "upkeep"
+version = "0.1.0"
+description = "Portage update helper commands."
+authors = ["Andrew Udvare <audvare@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+click = "^8.1.3"
+loguru = "^0.6.0"
+
+[tool.poetry.group.dev.dependencies]
+mypy = "^0.991"
+mypy-extensions = "^0.4.3"
+pylint = "^2.15.10"
+pylint-quotes = "^0.2.3"
+rope = "^1.7.0"
+isort = "^5.12.0"
+toml = "^0.10.2"
+
+[tool.poetry.group.testing.dependencies]
+levenshtein = "^0.20.9"
+pytest = "^7.2.1"
+pytest-cov = "^4.0.0"
+pytest-mock = "^3.10.0"
+
+[tool.poetry.group.docs.dependencies]
+sphinx = "^6.1.3"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+ecleans = "upkeep.commands:ecleans"
+emerges = "upkeep.commands:emerges"
+esync = "upkeep.commands:esync"
+rebuild-kernel = "upkeep.commands:rebuild_kernel"
+upgrade-kernel = "upkeep.commands:upgrade_kernel"

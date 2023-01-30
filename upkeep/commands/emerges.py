@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: MIT
+# pylint: disable=too-many-arguments
+import subprocess as sp
+
+import click
+
+from ..constants import DEFAULT_USER_CONFIG
+from ..decorators import umask
+from ..utils import CommandRunner
+from .kernel import upgrade_kernel
+
+
+@click.command('emerges')
+@click.option('--fatal-upgrade-kernel',
+              is_flag=True,
+              help='Exit with status > 0 if kernel upgrade cannot be done')
+@click.option('-D',
+              '--no-daemon-reexec',
+              is_flag=True,
+              help='Do not run daemon-reexec (systemd)')
+@click.option('-L',
+              '--no-live-rebuild',
+              is_flag=True,
+              help='Skip the live-rebuild step')
+@click.option('-P',
+              '--no-preserved-rebuild',
+              is_flag=True,
+              help='Skip the preserved-rebuild step')
+@click.option('-U',
+              '--no-upgrade-kernel',
+              is_flag=True,
+              help='Skip upgrading the kernel')
+@click.option('-a', '--ask', is_flag=True, help='Pass --ask to emerge')
+@click.option('-c',
+              '--config',
+              default=DEFAULT_USER_CONFIG,
+              help='Override configuration file path.')
+@click.option('-e', '--exclude', metavar='ATOM')
+@click.option('-v',
+              '--verbose',
+              is_flag=True,
+              help='Pass --verbose to emerge and enable logging')
+@umask(new_umask=0o022)
+def emerges(ask: bool = False,
+            no_live_rebuild: bool = False,
+            no_preserved_rebuild: bool = False,
+            no_daemon_reexec: bool = False,
+            no_upgrade_kernel: bool = False,
+            config: str | None = None,
+            fatal_upgrade_kernel: bool = False,
+            verbose: bool = False,
+            exclude: str | None = None) -> None:
+    # pylint: disable=line-too-long
+    """
+    Runs the following steps:
+
+    - ``emerge --oneshot --quiet --update portage``
+    - ``emerge --keep-going --tree --quiet --update --deep --newuse @world``
+    - ``emerge --keep-going --quiet @live-rebuild``
+    - ``emerge --keep-going --quiet @preserved-rebuild``
+    - ``systemctl daemon-reexec`` if applicable
+    - upgrade kernel
+
+    This function understands the following CLI flags:
+
+    - ``-a`` / ``--ask``: Pass ``--ask`` to the ``emerge @world`` command
+    - ``-L`` / ``--no-live-rebuild``: Skip ``emerge @live-rebuild`` step
+    - ``-P`` / ``--no-preserved-rebuild``: Skip ``emerge @preserved-rebuild``
+      step
+    - ``-D`` / ``--no-daemon-reexec``: Skip ``systemctl daemon-reexec`` step
+    - ``-U`` / ``--no-upgrade-kernel``: Skip upgrading the kernel
+
+    See Also
+    --------
+    upgrade_kernel
+    """
+    # pylint: enable=line-too-long
+    live_rebuild = not no_live_rebuild
+    preserved_rebuild = not no_preserved_rebuild
+    daemon_reexec = not no_daemon_reexec
+    up_kernel = not no_upgrade_kernel
+    ask_arg = ['--ask'] if ask else []
+    verbose_arg = ['--verbose'] if verbose else ['--quiet']
+    exclude_arg = [f'--exclude={x}' for x in exclude or []]
+    runner = CommandRunner()
+    try:
+        runner.check_call(['emerge', '--oneshot', '--update', 'portage'] +
+                          verbose_arg)
+        runner.check_call([
+            'emerge', '--keep-going', '--tree', '--update', '--deep',
+            '--newuse', '@world'
+        ] + ask_arg + verbose_arg + exclude_arg)
+        if live_rebuild:
+            runner.check_call(
+                ('emerge', '--keep-going', '--quiet', '@live-rebuild'))
+        if preserved_rebuild:
+            runner.check_call((
+                'emerge',
+                '--keep-going',
+                '--quiet',
+                '@preserved-rebuild',
+            ))
+    except sp.CalledProcessError as e:
+        raise click.Abort() from e
+    if daemon_reexec:
+        try:
+            runner.suppress_output(('which', 'systemctl'))
+            runner.check_call(('systemctl', 'daemon-reexec'))
+        except sp.CalledProcessError:
+            pass
+    if up_kernel:
+        upgrade_kernel(None, config, fatal=fatal_upgrade_kernel)

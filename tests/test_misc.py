@@ -1,25 +1,28 @@
 # SPDX-License-Identifier: MIT
 from inspect import isfunction
 
-from upkeep import KernelConfigError, graceful_interrupt, kernel_command, umask
+import click
+import pytest
+
+from upkeep.commands.kernel import kernel_command
+from upkeep.decorators import umask
+from upkeep.exceptions import KernelConfigError
 
 
-def test_graceful_interrupt_no_function():
-    assert isfunction(graceful_interrupt())
-
-
-def test_umask_with_function():
-    umasker = umask(lambda: None, new_umask=0o022, restore=True)
+def test_umask_with_function() -> None:
+    umasker = umask(new_umask=0o022, restore=True)(lambda: None)
     assert isfunction(umasker)
     assert umasker() is None  # pylint: disable=no-value-for-parameter
 
 
-def test_kernel_command():
-    assert kernel_command(lambda x, y: 2)() == 2
+def test_kernel_command() -> None:
+    assert kernel_command(lambda x, y: None)() is None
 
 
 def test_kernel_command_raise() -> None:
-    def raise_(_x: int | None, _y: str | None) -> int:
+
+    def raise_(_x: int | None, _y: str | None) -> None:
         raise KernelConfigError()
 
-    assert kernel_command(raise_)() == 1
+    with pytest.raises(click.Abort):
+        kernel_command(raise_)()
