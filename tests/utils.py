@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # pylint: disable=too-few-public-methods,import-outside-toplevel
-from typing import Sequence, Type, TypedDict
+from typing import Sequence, TypedDict
 import json
 import subprocess as sp
 
@@ -13,12 +13,9 @@ __all__ = ('SubprocessMocker', )
 
 class MakeKeyKwargsOptional(TypedDict, total=False):
     check: bool
-    returncode: int
     stderr: int
-    stderr_output: str | None
     stdout: int
-    stdout_output: str | None
-    text: bool | None
+    text: bool
 
 
 class MakeKeyKwargs(MakeKeyKwargsOptional):
@@ -53,17 +50,12 @@ class SubprocessMocker:
         from upkeep.utils import minenv
 
         self.history.append(' '.join(args[0]))
-        key = _make_key(
-            *args, **{
-                **MakeKeyKwargs(stderr_output=None,
-                                stdout_output=None,
-                                stdout=-1,
-                                stderr=-1,
-                                check=False,
-                                returncode=0,
-                                env=minenv()),
-                **kwargs
-            })
+        key = _make_key(*args,
+                        env=kwargs.get('env', minenv()),
+                        check=kwargs.get('check', False),
+                        stdout=kwargs.get('stdout', -1),
+                        stderr=kwargs.get('stderr', -1),
+                        text=kwargs.get('text', True))
         try:
             val = self._outputs[key]
         except KeyError:
@@ -99,10 +91,7 @@ class SubprocessMocker:
                         check=check,
                         env=env,
                         stderr=stderr,
-                        stdout=stdout,
-                        returncode=returncode,
-                        stderr_output=stderr_output,
-                        stdout_output=stdout_output)
+                        stdout=stdout)
         if not raise_:
             self._outputs[key] = _FakeCompletedProcess(stdout_output,
                                                        stderr_output,
