@@ -1,4 +1,6 @@
 # SPDX-License-Identifier: MIT
+from typing import Final, Mapping
+
 __all__ = (
     'CONFIG_GZ',
     'DEFAULT_USER_CONFIG',
@@ -10,15 +12,17 @@ __all__ = (
     'SPECIAL_ENV',
 )
 
-CONFIG_GZ = '/proc/config.gz'
-DEFAULT_USER_CONFIG = '/etc/upkeeprc'
+CONFIG_GZ: Final[str] = '/proc/config.gz'
+DEFAULT_USER_CONFIG: Final[str] = '/etc/upkeeprc'
 # --getbinpkg=n is broken when FEATURES=getbinpkg
 # https://bugs.gentoo.org/759067
-DISABLE_GETBINPKG_ENV_DICT = dict(FEATURES='-getbinpkg')
-GRUB_CFG = '/boot/grub/grub.cfg'
-INTEL_UC = '/boot/intel-uc.img'
-KERNEL_SOURCE_DIR = '/usr/src/linux'
-OLD_KERNELS_DIR = '/var/lib/upkeep/old-kernels'
-SPECIAL_ENV = ('CONFIG_PROTECT', 'CONFIG_PROTECT_MASK', 'FEATURES', 'HOME',
-               'LANG', 'MAKEOPTS', 'PATH', 'SHELL', 'SSH_AGENT_PID',
-               'SSH_AUTH_SOCK', 'TERM', 'USE')
+DISABLE_GETBINPKG_ENV_DICT: Final[Mapping[str,
+                                          str]] = dict(FEATURES='-getbinpkg')
+GRUB_CFG: Final[str] = '/boot/grub/grub.cfg'
+INTEL_UC: Final[str] = '/boot/intel-uc.img'
+KERNEL_SOURCE_DIR: Final[str] = '/usr/src/linux'
+OLD_KERNELS_DIR: Final[str] = '/var/lib/upkeep/old-kernels'
+SPECIAL_ENV: Final[tuple[str, ...]] = ('CONFIG_PROTECT', 'CONFIG_PROTECT_MASK',
+                                       'FEATURES', 'HOME', 'LANG', 'MAKEOPTS',
+                                       'PATH', 'SHELL', 'SSH_AGENT_PID',
+                                       'SSH_AUTH_SOCK', 'TERM', 'USE')
