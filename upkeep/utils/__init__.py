@@ -5,7 +5,7 @@ from os import close, environ
 from shlex import quote
 from subprocess import CompletedProcess
 from tempfile import mkstemp
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence, cast
 import subprocess as sp
 
 from loguru import logger
@@ -23,14 +23,14 @@ def get_temp_filename(suffix: str | None = None,
 
 
 @lru_cache()
-def get_config(config_path: str):
+def get_config(config_path: str) -> ConfigParser:
     config = ConfigParser()
     config.read(config_path or DEFAULT_USER_CONFIG)
     return config
 
 
 @lru_cache()
-def minenv() -> dict[str, str]:
+def minenv() -> Mapping[str, str]:
     env: dict[str, str] = {}
     for key in SPECIAL_ENV:
         if environ.get(key):
@@ -55,9 +55,11 @@ class CommandRunner:
                           text=True,
                           env=env or minenv())
         except sp.CalledProcessError as e:
-            logger.error(f'`{" ".join(quote(x) for x in e.cmd)}` failed')
-            logger.error(f'STDOUT: {e.stdout}')
-            logger.error(f'STDERR: {e.stderr}')
+            logger.error(
+                f'`{" ".join(quote(x) for x in cast(Sequence[str], e.cmd))}` failed'
+            )
+            logger.error(f'STDOUT: {cast(str, e.stdout)}')
+            logger.error(f'STDERR: {cast(str, e.stderr)}')
             raise e
 
     def check_call(self,
