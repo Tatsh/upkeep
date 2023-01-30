@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 from subprocess import CalledProcessError
-from typing import Any, Optional, TypeVar
+from typing import Any, TypeVar
 import sys
 
 from pytest_mock.plugin import MockerFixture as MockFixture
@@ -177,7 +177,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
         def __init__(self, content: bytes = b''):
             self.content = content
 
-        def read(self, _count: Optional[int] = None) -> bytes:
+        def read(self, _count: int | None = None) -> bytes:
             return self.content
 
         def write(self, _value: Any):
@@ -239,4 +239,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
     sp_mocker.add_output3(('bootctl', 'status'), stdout_output='')
     mocker.patch('upkeep.utils.kernel._get_kernel_version',
                  return_value='5.6.6-gentoo')
-    assert upgrade_kernel() is None
+    try:
+        upgrade_kernel()
+    except RuntimeError as e:
+        pytest.fail(f'Unexpected RuntimeError: {e.args}')
