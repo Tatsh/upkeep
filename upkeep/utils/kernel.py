@@ -52,7 +52,6 @@ def _maybe_sign_exes(esp_path: str, config_path: str | None) -> None:
     config = None
     if config_path:
         config = get_config(config_path)
-
     output_bootx64 = path_join(esp_path, 'EFI', 'BOOT', 'BOOTX64.EFI')
     output_systemd_bootx64 = path_join(esp_path, 'EFI', 'systemd',
                                        'systemd-bootx64.efi')
@@ -68,7 +67,6 @@ def _maybe_sign_exes(esp_path: str, config_path: str | None) -> None:
             'the boot loader before rebooting. If you are using a unified'
             ' EFI kernel image, you must sign it as well.')
         return
-
     tmp_bootx64 = get_temp_filename()
     shutil.copy(output_bootx64, tmp_bootx64)
     files_to_sign = (
@@ -139,11 +137,9 @@ def _update_systemd_boot(config_path: str | None) -> None:
     if not _esp_path():
         raise KernelConfigError('`bootctl -p` returned empty string')
     _bootctl_update_or_install()
-
     kernel_version = _get_kernel_version()
     if not kernel_version:
         raise RuntimeError('Failed to detect Linux version')
-
     if not _uefi_unified():
         # Type #1 with kernel-install
         # Dracut is expected to be installed which will add initrd
@@ -202,7 +198,6 @@ def rebuild_kernel(num_cpus: int | None = None,
     if not num_cpus:
         num_cpus = cpu_count() + 1
     chdir(KERNEL_SOURCE_DIR)
-
     if not isfile('.config') and isfile(CONFIG_GZ):
         with ExitStack() as stack:
             stack.enter_context(open('.config', 'wb+')).write(
@@ -210,7 +205,6 @@ def rebuild_kernel(num_cpus: int | None = None,
     if not isfile('.config'):
         raise KernelConfigError(
             'Will not build without a .config file present')
-
     runner = CommandRunner()
     suffix = _get_kernel_version_suffix() or ''
     logger.info('Running: make oldconfig')
@@ -224,7 +218,6 @@ def rebuild_kernel(num_cpus: int | None = None,
     for cmd in commands:
         logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
         runner.run(cmd)
-
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
     commands = (('find', '/boot', '-maxdepth', '1', '(', '-name',
                  'initramfs-*', '-o', '-name', 'vmlinuz-*', '-o', '-iname',
@@ -239,17 +232,14 @@ def rebuild_kernel(num_cpus: int | None = None,
             runner.check_call(cmd)
         except sp.CalledProcessError:
             runner.check_call(('eselect', 'kernel', 'set', '1'))
-
     if _has_grub() or _uefi_unified():
         kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
         cmd = ('dracut', '--force', '--kver', kver_arg)
         logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
         runner.run(cmd)
-
     if _has_grub():
         _update_grub()
         return
-
     _update_systemd_boot(config_path)
 
 

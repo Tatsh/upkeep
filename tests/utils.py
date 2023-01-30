@@ -48,7 +48,6 @@ class SubprocessMocker:
         self, *args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]
     ) -> _FakeCompletedProcess | sp.CalledProcessError | None:
         from upkeep.utils import minenv
-
         self.history.append(' '.join(args[0]))
         key = _make_key(*args,
                         env=kwargs.get('env', minenv()),
@@ -107,7 +106,6 @@ class SubprocessMocker:
                     raise_: bool = False,
                     returncode: int = 0) -> None:
         from upkeep.utils import minenv
-
         self.add_output(check=True,
                         stdout=sp.PIPE,
                         stderr=sp.PIPE,
@@ -124,7 +122,6 @@ class SubprocessMocker:
                     stderr: int = -1,
                     raise_: bool = False) -> None:
         from upkeep.utils import minenv
-
         self.add_output(raise_=raise_,
                         stdout=stdout,
                         stderr=stderr,

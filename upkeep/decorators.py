@@ -5,8 +5,8 @@ from typing import Callable, ParamSpec, TypeVar
 
 __all__ = ('umask', )
 
-T = TypeVar('T')
 P = ParamSpec('P')
+T = TypeVar('T')
 
 
 def umask(new_umask: int,

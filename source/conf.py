@@ -8,7 +8,6 @@ import sys
 # region Path setup
 sys.path.insert(0, os.path.abspath('..'))
 # endregion
-
 # region Project information
 project = 'Upkeep'
 copyright = '2020, Andrew Udvare'
@@ -18,7 +17,6 @@ version = '1.2.7'
 # The full version, including alpha/beta/rc tags
 release = f'v{version}'
 # endregion
-
 # region General configuration
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
@@ -32,7 +30,6 @@ templates_path = ['_templates']
 exclude_patterns: Sequence[str] = []
 master_doc = 'index'
 # endregion
-
 # region Options for HTML output
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
@@ -42,6 +39,5 @@ html_theme = 'alabaster'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 # endregion
-
 # region Extension configuration
 # endregion
