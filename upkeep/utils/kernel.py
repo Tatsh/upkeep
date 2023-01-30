@@ -7,6 +7,7 @@ from os import chdir, unlink
 from os.path import isfile, join as path_join, realpath
 from pathlib import Path
 from shlex import quote
+from typing import cast
 import gzip
 import re
 import shutil
@@ -37,7 +38,7 @@ def _bootctl_update_or_install() -> None:
         runner.run(('bootctl', 'update'))
     except sp.CalledProcessError as e:
         ok = True
-        for line in e.stderr.splitlines():
+        for line in cast(str, e.stderr).splitlines():
             if ('Failed to test system token validity' in line
                     or line.startswith('Skipping "')):
                 continue
