@@ -180,16 +180,16 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
         def read(self, _count: int | None = None) -> bytes:
             return self.content
 
-        def write(self, _value: Any):
+        def write(self, _value: Any) -> None:
             pass
 
         def readlines(self) -> list[Any]:
             return []
 
-        def __enter__(self):
+        def __enter__(self) -> 'FakeFile':
             return self
 
-        def __exit__(self, _a: Any, _b: Any, _c: Any):
+        def __exit__(self, _a: Any, _b: Any, _c: Any) -> None:
             pass
 
     class PathMock:
@@ -197,26 +197,26 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
         def __init__(self, name: str):
             self.name = name
 
-        def glob(self, _glob_str: str):
+        def glob(self, _glob_str: str) -> list['PathMock']:
             if self.name == '/boot':
                 return [PathMock('mz-file'), PathMock('not-mz-file')]
             return []
 
-        def open(self, _mode: str):
+        def open(self, _mode: str) -> FakeFile:
             if self.name == 'mz-file':
                 return FakeFile(b'MZ')
             return FakeFile()
 
-        def mkdir(self, *args: Any, **kwargs: Any):
+        def mkdir(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def exists(self):
+        def exists(self) -> bool:
             return False
 
-        def unlink(self):
+        def unlink(self) -> None:
             pass
 
-        def joinpath(self, *args: Any):  # pylint: disable=unused-argument
+        def joinpath(self, *args: Any) -> 'PathMock':  # pylint: disable=unused-argument
             return self
 
     mocker.patch('upkeep.glob', return_value=[])
