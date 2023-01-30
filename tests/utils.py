@@ -1,40 +1,82 @@
 # SPDX-License-Identifier: MIT
 # pylint: disable=too-few-public-methods,import-outside-toplevel
-from typing import Any, BinaryIO, Dict, Optional, TextIO, Type, overload
-import io
+from typing import Sequence, Type, TypedDict
 import json
 import subprocess as sp
 
 from Levenshtein import distance
+from typing_extensions import Unpack
+import pytest
 
 __all__ = ('SubprocessMocker', )
 
 
-def _make_key(*args: list[Any], **kwargs: dict[str, Any]) -> str:
-    return json.dumps({**kwargs, **{'args': args}}, sort_keys=True)
+class MakeKeyKwargsOptional(TypedDict, total=False):
+    check: bool
+    returncode: int
+    stderr: int
+    stderr_output: str | None
+    stdout: int
+    stdout_output: str | None
+    text: bool | None
+
+
+class MakeKeyKwargs(MakeKeyKwargsOptional):
+    env: dict[str, str]
+
+
+def _make_key(*args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]) -> str:
+    kwargs.pop('text', None)
+    return json.dumps({**kwargs, **dict(args=args)}, sort_keys=True)
+
+
+class _FakeCompletedProcess:
+
+    def __init__(self,
+                 stdout_output: str | None = None,
+                 stderr_output: str | None = None,
+                 returncode: int = 0):
+        self.stdout = stdout_output
+        self.stderr = stderr_output
+        self.returncode = returncode
 
 
 class SubprocessMocker:
 
     def __init__(self) -> None:
-        self._outputs: Dict[str, Any] = {}
+        self._outputs: dict[str, _FakeCompletedProcess | BaseException] = {}
         self.history: list[str] = []
 
-    def get_output(self, *args: Any, **kwargs: Any) -> Any:
+    def get_output(
+        self, *args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]
+    ) -> _FakeCompletedProcess | sp.CalledProcessError | None:
+        from upkeep.utils import minenv
+
         self.history.append(' '.join(args[0]))
-        key = _make_key(*args, **kwargs)
+        key = _make_key(
+            *args, **{
+                **MakeKeyKwargs(stderr_output=None,
+                                stdout_output=None,
+                                stdout=-1,
+                                stderr=-1,
+                                check=False,
+                                returncode=0,
+                                env=minenv()),
+                **kwargs
+            })
         try:
             val = self._outputs[key]
         except KeyError:
-            print(f'Failed to find key:\n{key}')
             existing_keys = list(self._outputs.keys())
+            closest = '\n'
             if existing_keys:
                 possible_keys: list[tuple[int, int]] = []
                 for i, existing_key in enumerate(self._outputs.keys()):
                     possible_keys.append((distance(existing_key, key), i))
                 possible_keys = sorted(possible_keys)
-                print(f'Closest match:\n{existing_keys[possible_keys[0][1]]}')
-                print(f'Distance: {possible_keys[0][0]}')
+                closest += f'Closest match:\n{existing_keys[possible_keys[0][1]]}'
+                closest += f'\nDistance: {possible_keys[0][0]}'
+                pytest.fail(f'Failed to find key:\n{key}{closest}')
             return None
         if isinstance(val, BaseException):
             raise val
@@ -43,98 +85,60 @@ class SubprocessMocker:
     def reset_output(self) -> None:
         self._outputs = {}
 
-    class _FakeCompletedProcess:
-
-        @overload
-        def __init__(self,
-                     io_cls: Type[BinaryIO],
-                     stdout_output: Optional[bytes] = ...,
-                     stderr_output: Optional[bytes] = ...,
-                     returncode: int = 0,
-                     **kwargs: Any):
-            pass
-
-        @overload
-        def __init__(self,
-                     io_cls: Type[TextIO],
-                     stdout_output: Optional[str] = ...,
-                     stderr_output: Optional[str] = ...,
-                     returncode: int = 0,
-                     **kwargs: Any):
-            pass
-
-        def __init__(self,
-                     io_cls: Any,
-                     stdout_output: Any = None,
-                     stderr_output: Any = None,
-                     returncode: int = 0,
-                     **kwargs: Any):
-            if kwargs.pop('universal_newlines', False):
-                self.stdout = (stdout_output
-                               if stdout_output is not None else None)
-                self.stderr = (stderr_output
-                               if stderr_output is not None else None)
-            else:
-                self.stdout = (io_cls(stdout_output)
-                               if stdout_output is not None else None)
-                self.stderr = (io_cls(stderr_output)
-                               if stderr_output is not None else None)
-            self.returncode = returncode
-            self.kwargs = kwargs
-
-    def add_output(self, *args: Any, **kwargs: Any) -> None:
-        stdout_output = kwargs.pop('stdout_output', None)
-        stderr_output = kwargs.pop('stderr_output', None)
-        returncode = kwargs.pop('returncode', 0)
-        assert isinstance(returncode, int), 'returncode must be an integer'
-        raise_ = kwargs.pop('raise_', False)
-        raise_cls = kwargs.pop('raise_cls', sp.CalledProcessError)
-        raise_message = kwargs.pop('raise_message', 'test exception')
-        cls: Type[BinaryIO] | Type[TextIO] = io.StringIO
-        if (isinstance(stdout_output, bytes)
-                or isinstance(stderr_output, bytes)):
-            if (isinstance(stdout_output, bytes)
-                    and not isinstance(stderr_output, bytes)) or (
-                        isinstance(stderr_output, bytes)
-                        and not isinstance(stdout_output, bytes)):
-                raise TypeError(
-                    'stderr_output and stdout_output must be of the same type')
-            cls = io.BytesIO
-        key = _make_key(*args, **kwargs)
+    def add_output(self,
+                   *args: Sequence[str],
+                   stderr_output: str | None = None,
+                   stdout_output: str | None = None,
+                   stdout: int = -1,
+                   stderr: int = -1,
+                   env: dict[str, str],
+                   check: bool = False,
+                   returncode: int = 0,
+                   raise_: bool = False) -> None:
+        key = _make_key(*args,
+                        check=check,
+                        env=env,
+                        stderr=stderr,
+                        stdout=stdout,
+                        returncode=returncode,
+                        stderr_output=stderr_output,
+                        stdout_output=stdout_output)
         if not raise_:
-            self._outputs[key] = self._FakeCompletedProcess(
-                cls, stdout_output, stderr_output, returncode, **kwargs)
+            self._outputs[key] = _FakeCompletedProcess(stdout_output,
+                                                       stderr_output,
+                                                       returncode)
         else:
-            if raise_cls == sp.CalledProcessError:
-                self._outputs[key] = sp.CalledProcessError(
-                    returncode or 255, args[0], stdout_output, stderr_output)
-            else:
-                self._outputs[key] = raise_cls(raise_message)
+            self._outputs[key] = sp.CalledProcessError(returncode or 255,
+                                                       args[0], stdout_output,
+                                                       stderr_output)
 
-    def add_output2(self, *args: Any, **kwargs: Any) -> None:
+    def add_output3(self,
+                    *args: Sequence[str],
+                    stdout_output: str | None = None,
+                    raise_: bool = False,
+                    returncode: int = 0) -> None:
         from upkeep.utils import minenv
 
-        kwargs.pop('check', None)
-        kwargs.pop('env', None)
-        self.add_output(check=True, env=minenv(), *args, **kwargs)
-
-    def add_output3(self, *args: Any, **kwargs: Any) -> None:
-        from upkeep.utils import minenv
-
-        kwargs.pop('check', None)
-        kwargs.pop('env', None)
-        kwargs.pop('universal_newlines', None)
         self.add_output(check=True,
-                        universal_newlines=True,
                         stdout=sp.PIPE,
                         stderr=sp.PIPE,
                         env=minenv(),
-                        *args,
-                        **kwargs)
+                        stdout_output=stdout_output,
+                        raise_=raise_,
+                        returncode=returncode,
+                        *args)
 
-    def add_output4(self, *args: Any, **kwargs: Any) -> None:
+    def add_output4(self,
+                    *args: Sequence[str],
+                    check: bool = False,
+                    stdout: int = -1,
+                    stderr: int = -1,
+                    raise_: bool = False) -> None:
         from upkeep.utils import minenv
 
-        kwargs.pop('env', None)
-        kwargs.pop('universal_newlines', None)
-        self.add_output(universal_newlines=True, env=minenv(), *args, **kwargs)
+        self.add_output(raise_=raise_,
+                        stdout=stdout,
+                        stderr=stderr,
+                        check=check,
+                        env=minenv(),
+                        *args)
