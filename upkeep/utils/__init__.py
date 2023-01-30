@@ -44,7 +44,6 @@ class CommandRunner:
             args: Sequence[str],
             *,
             check: bool = True,
-            text: bool = True,
             env: Mapping[str, str] | None = None,
             stdout: int = sp.PIPE,
             stderr: int = sp.PIPE) -> CompletedProcess[str]:
@@ -53,7 +52,7 @@ class CommandRunner:
                           check=check,
                           stdout=stdout,
                           stderr=stderr,
-                          universal_newlines=text,
+                          text=True,
                           env=env or minenv())
         except sp.CalledProcessError as e:
             logger.error(f'`{" ".join(quote(x) for x in e.cmd)}` failed')
@@ -63,16 +62,11 @@ class CommandRunner:
 
     def check_call(self,
                    args: Sequence[str],
-                   text: bool = True,
                    env: Mapping[str, str] | None = None) -> int:
-        return self.run(args, check=True, text=text, env=env).returncode
+        return self.run(args, check=True, env=env).returncode
 
     def suppress_output(self,
                         args: Sequence[str],
-                        text: bool = True,
                         env: Mapping[str, str] | None = None) -> int:
-        return self.run(args,
-                        stdout=sp.DEVNULL,
-                        stderr=sp.DEVNULL,
-                        text=text,
+        return self.run(args, stdout=sp.DEVNULL, stderr=sp.DEVNULL,
                         env=env).returncode
