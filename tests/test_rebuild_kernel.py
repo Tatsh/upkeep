@@ -16,10 +16,10 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
             return True
         raise Exception(x)
 
-    mocker.patch('upkeep.isfile', new=isfile)
-    mocker.patch('upkeep.chdir')
-    open_f = mocker.patch('upkeep.open')
-    gzip_open = mocker.patch('upkeep.gzip.open')
+    mocker.patch('upkeep.utils.kernel.isfile', new=isfile)
+    mocker.patch('upkeep.utils.kernel.chdir')
+    open_f = mocker.patch('upkeep.utils.kernel.open')
+    gzip_open = mocker.patch('upkeep.utils.kernel.gzip.open')
     with pytest.raises(KernelConfigError):
         rebuild_kernel()
     assert gzip_open.call_count == 1

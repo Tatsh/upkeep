@@ -3,6 +3,7 @@ from subprocess import CalledProcessError
 from typing import Any, TypeVar
 import sys
 
+from click.testing import CliRunner
 from pytest_mock.plugin import MockerFixture as MockFixture
 import click
 import pytest
@@ -22,10 +23,11 @@ def test_upgrade_kernel_no_eselect_output(sp_mocker: SubprocessMocker,
     ]
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output='')
-    mocker.patch('upkeep.glob', return_value=['.'])
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.glob', return_value=['.'])
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
     with pytest.raises(click.Abort):
-        emerges()
+        runner = CliRunner()
+        runner.invoke(emerges)
 
 
 def test_upgrade_kernel_eselect_too_many_kernels(sp_mocker: SubprocessMocker,
@@ -39,8 +41,8 @@ def test_upgrade_kernel_eselect_too_many_kernels(sp_mocker: SubprocessMocker,
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' \n \n \n')
-    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.glob', return_value=['/etc/profile'])
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
     with pytest.raises(click.Abort):
         emerges()
 
@@ -56,18 +58,18 @@ def test_upgrade_kernel_eselect_kernel_set_invalid_output_from_eselect(
     sp_mocker.add_output3(
         ('eselect', '--colour=no', '--brief', 'kernel', 'list'),
         stdout_output=' *\n \n')
-    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.glob', return_value=['/etc/profile'])
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
     with pytest.raises(click.Abort):
         emerges()
 
 
 def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture,
                                           sp_mocker: SubprocessMocker) -> None:
-    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
-    mocker.patch('upkeep.chdir')
-    mocker.patch('upkeep.isfile', return_value=False)
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.glob', return_value=['/etc/profile'])
+    mocker.patch('upkeep.utils.kernel.chdir')
+    mocker.patch('upkeep.utils.kernel.isfile', return_value=False)
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] \n')
     sp_mocker.add_output3(
@@ -79,14 +81,14 @@ def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture,
 
 def test_upgrade_kernel_rebuild_error_during_build(
         mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
-    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
-    mocker.patch('upkeep.Path')
-    mocker.patch('upkeep.chdir')
-    mocker.patch('upkeep.open')
-    mocker.patch('upkeep.realpath',
+    mocker.patch('upkeep.utils.kernel.glob', return_value=['/etc/profile'])
+    mocker.patch('upkeep.utils.kernel.Path')
+    mocker.patch('upkeep.utils.kernel.chdir')
+    mocker.patch('upkeep.utils.kernel.open')
+    mocker.patch('upkeep.utils.kernel.realpath',
                  return_value='/usr/src/linux-5.6.14-gentoo')
-    mocker.patch('upkeep.isfile', return_value=True)
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.isfile', return_value=True)
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] linux-5.6.14-gentoo\n')
     sp_mocker.add_output3(
@@ -101,12 +103,12 @@ def test_upgrade_kernel_rebuild_error_during_build(
 
 def test_upgrade_kernel_rebuild_error_during_grub(
         mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
-    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
-    mocker.patch('upkeep.Path')
-    mocker.patch('upkeep.chdir')
-    mocker.patch('upkeep.open')
-    mocker.patch('upkeep.isfile', return_value=True)
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.glob', return_value=['/etc/profile'])
+    mocker.patch('upkeep.utils.kernel.Path')
+    mocker.patch('upkeep.utils.kernel.chdir')
+    mocker.patch('upkeep.utils.kernel.open')
+    mocker.patch('upkeep.utils.kernel.isfile', return_value=True)
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] \n')
     sp_mocker.add_output3(
@@ -128,13 +130,13 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_esp_path(
         return x
 
     _has_grub.cache_clear()
-    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
-    mocker.patch('upkeep.Path')
-    mocker.patch('upkeep.chdir')
-    mocker.patch('upkeep.open')
-    mocker.patch('upkeep.isfile', return_value=True)
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
-    mocker.patch('upkeep.lru_cache', side_effect=identity)
+    mocker.patch('upkeep.utils.kernel.glob', return_value=['/etc/profile'])
+    mocker.patch('upkeep.utils.kernel.Path')
+    mocker.patch('upkeep.utils.kernel.chdir')
+    mocker.patch('upkeep.utils.kernel.open')
+    mocker.patch('upkeep.utils.kernel.isfile', return_value=True)
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.lru_cache', side_effect=identity)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] \n')
     sp_mocker.add_output3(
@@ -150,13 +152,12 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_esp_path(
 def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
         mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
     _esp_path.cache_clear()
-    mocker.patch('upkeep.glob', return_value=['/etc/profile'])
-    mocker.patch('upkeep.Path')
-    mocker.patch('shutil.rmtree')
-    mocker.patch('upkeep.chdir')
-    mocker.patch('upkeep.open')
-    mocker.patch('upkeep.isfile', return_value=True)
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.glob', return_value=['/etc/profile'])
+    mocker.patch('upkeep.utils.kernel.Path')
+    mocker.patch('upkeep.utils.kernel.chdir')
+    mocker.patch('upkeep.utils.kernel.open')
+    mocker.patch('upkeep.utils.kernel.isfile', return_value=True)
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] \n')
     sp_mocker.add_output3(
@@ -219,15 +220,13 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
         def joinpath(self, *args: Any) -> 'PathMock':  # pylint: disable=unused-argument
             return self
 
-    mocker.patch('upkeep.glob', return_value=[])
-    mocker.patch('upkeep.Path', side_effect=PathMock)
-    mocker.patch('upkeep.shutil.rmtree')
-    mocker.patch('upkeep.shutil.copy')
-    mocker.patch('upkeep.chdir')
-    mocker.patch('upkeep.shutil.copyfile')
-    mocker.patch('upkeep.open')
-    mocker.patch('upkeep.isfile', return_value=True)
-    mocker.patch('upkeep.sp.run', side_effect=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.kernel.glob', return_value=[])
+    mocker.patch('upkeep.utils.kernel.Path', side_effect=PathMock)
+    mocker.patch('upkeep.utils.kernel.shutil.copy')
+    mocker.patch('upkeep.utils.kernel.chdir')
+    mocker.patch('upkeep.utils.kernel.open')
+    mocker.patch('upkeep.utils.kernel.isfile', return_value=True)
+    mocker.patch('upkeep.utils.sp.run', side_effect=sp_mocker.get_output)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] linux-5.6.6-gentoo\n')
     sp_mocker.add_output3(
