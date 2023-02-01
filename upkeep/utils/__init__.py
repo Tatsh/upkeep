@@ -45,8 +45,8 @@ class CommandRunner:
             *,
             check: bool = True,
             env: Mapping[str, str] | None = None,
-            stdout: int = sp.PIPE,
-            stderr: int = sp.PIPE) -> CompletedProcess[str]:
+            stdout: int | None = None,
+            stderr: int | None = None) -> CompletedProcess[str]:
         try:
             return sp.run(args,
                           check=check,
@@ -56,16 +56,22 @@ class CommandRunner:
                           env=env or minenv())
         except sp.CalledProcessError as e:
             logger.error(
-                f'`{" ".join(quote(x) for x in cast(Sequence[str], e.cmd))}` failed'
-            )
+                f'`{" ".join(quote(x) for x in cast(Sequence[str], e.cmd))}` '
+                'failed')
             logger.error(f'STDOUT: {cast(str, e.stdout)}')
             logger.error(f'STDERR: {cast(str, e.stderr)}')
             raise e
 
     def check_call(self,
                    args: Sequence[str],
-                   env: Mapping[str, str] | None = None) -> int:
-        return self.run(args, check=True, env=env).returncode
+                   env: Mapping[str, str] | None = None,
+                   stdout: int | None = None,
+                   stderr: int | None = None) -> int:
+        return self.run(args,
+                        check=True,
+                        env=env,
+                        stdout=stdout,
+                        stderr=stderr).returncode
 
     def suppress_output(self,
                         args: Sequence[str],
