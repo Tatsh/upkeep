@@ -26,7 +26,7 @@ def _update_grub() -> int:
     args = ['grub2-mkconfig', '-o', GRUB_CFG]
     runner = CommandRunner()
     try:
-        return runner.run(args).returncode
+        return runner.suppress_output(args)
     except (sp.CalledProcessError, FileNotFoundError):
         args[0] = 'grub-mkconfig'
         return runner.run(args).returncode
@@ -35,7 +35,7 @@ def _update_grub() -> int:
 def _bootctl_update_or_install() -> None:
     runner = CommandRunner()
     try:
-        runner.run(('bootctl', 'update'))
+        runner.run(('bootctl', 'update'), stderr=sp.PIPE)
     except sp.CalledProcessError as e:
         ok = True
         for line in cast(str, e.stderr).splitlines():
@@ -44,7 +44,7 @@ def _bootctl_update_or_install() -> None:
                 continue
             ok = False
         if not ok:
-            runner.run(('bootctl', 'install', '--graceful'))
+            runner.suppress_output(('bootctl', 'install', '--graceful'))
 
 
 def _maybe_sign_exes(esp_path: str, config_path: str | None) -> None:
@@ -61,7 +61,7 @@ def _maybe_sign_exes(esp_path: str, config_path: str | None) -> None:
         db_key = config.get('systemd-boot', 'sign-key', fallback='')
         db_crt = config.get('systemd-boot', 'sign-cert', fallback='')
     if (not db_key or not db_crt and 'Secure Boot: enabled' in runner.run(
-        ('bootctl', 'status')).stdout):
+        ('bootctl', 'status'), stdout=sp.PIPE).stdout):
         logger.info(
             'You appear to have Secure Boot enabled. Make sure to sign '
             'the boot loader before rebooting. If you are using a unified'
@@ -78,9 +78,9 @@ def _maybe_sign_exes(esp_path: str, config_path: str | None) -> None:
         cmd = ('sbsign', '--key', db_key, '--cert', db_crt, input_file,
                '--output', output_path)
         logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
-        runner.run(cmd)
+        runner.suppress_output(cmd)
         assert db_crt is not None
-        runner.run(('sbverify', '--cert', db_crt, output_path))
+        runner.suppress_output(('sbverify', '--cert', db_crt, output_path))
     for input_file, _ in files_to_sign:
         if isfile(input_file):
             unlink(input_file)
@@ -112,8 +112,8 @@ def _get_kernel_version() -> str | None:
 @lru_cache()
 def _uefi_unified() -> bool:
     try:
-        CommandRunner().run(['grep', '-E', '^uefi="(yes|true)"'] +
-                            glob('/etc/dracut.conf.d/*.conf'))
+        CommandRunner().suppress_output(['grep', '-E', '^uefi="(yes|true)"'] +
+                                        glob('/etc/dracut.conf.d/*.conf'))
         return True
     except sp.CalledProcessError:
         return False
@@ -130,7 +130,8 @@ def _has_grub() -> bool:
 
 @lru_cache()
 def _esp_path() -> str:
-    return CommandRunner().run(('bootctl', '-p')).stdout.split('\n')[0].strip()
+    return CommandRunner().run(('bootctl', '-p'),
+                               stdout=sp.PIPE).stdout.split('\n')[0].strip()
 
 
 def _update_systemd_boot(config_path: str | None) -> None:
@@ -146,7 +147,7 @@ def _update_systemd_boot(config_path: str | None) -> None:
         suffix = _get_kernel_version_suffix() or ''
         cmd = ('kernel-install', 'add', f'{kernel_version}{suffix}',
                f'/boot/vmlinuz-{kernel_version}{suffix}')
-        logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
+        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
         CommandRunner().run(cmd)
     _maybe_sign_exes(_esp_path(), config_path)
     # Clean up /boot
@@ -227,16 +228,16 @@ def rebuild_kernel(num_cpus: int | None = None,
                      'install',
                  ))
     for cmd in commands:
-        logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
+        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
         try:
-            runner.check_call(cmd)
+            runner.suppress_output(cmd)
         except sp.CalledProcessError:
-            runner.check_call(('eselect', 'kernel', 'set', '1'))
+            runner.suppress_output(('eselect', 'kernel', 'set', '1'))
     if _has_grub() or _uefi_unified():
         kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
         cmd = ('dracut', '--force', '--kver', kver_arg)
-        logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
-        runner.run(cmd)
+        logger.info(f'Running: f{" ".join(quote(c) for c in cmd)}')
+        runner.suppress_output(cmd)
     if _has_grub():
         _update_grub()
         return
@@ -303,7 +304,7 @@ def upgrade_kernel(num_cpus: int | None = None,
         return
     cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
     logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
-    runner.run(cmd)
+    runner.suppress_output(cmd)
     try:
         rebuild_kernel(num_cpus, config_path)
     except KernelConfigError as e:
@@ -311,7 +312,8 @@ def upgrade_kernel(num_cpus: int | None = None,
         if fatal:
             raise click.Abort()
         return None
-    kernel_list = runner.run(('eselect', '--colour=no', 'kernel', 'list'))
+    kernel_list = runner.run(('eselect', '--colour=no', 'kernel', 'list'),
+                             stdout=sp.PIPE)
     lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
     old_kernel = None
     for line in (x for x in lines if not x.endswith('*')):
@@ -330,6 +332,6 @@ def upgrade_kernel(num_cpus: int | None = None,
             path.unlink()
     else:
         cmd = ('kernel-install', 'remove', f'{old_kernel}{suffix}')
-        logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
-        runner.run(cmd)
+        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
+        runner.suppress_output(cmd)
     return None

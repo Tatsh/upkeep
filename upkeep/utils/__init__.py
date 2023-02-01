@@ -75,6 +75,10 @@ class CommandRunner:
 
     def suppress_output(self,
                         args: Sequence[str],
-                        env: Mapping[str, str] | None = None) -> int:
-        return self.run(args, stdout=sp.DEVNULL, stderr=sp.DEVNULL,
-                        env=env).returncode
+                        env: Mapping[str, str] | None = None,
+                        check: bool = True) -> int:
+        return self.run(args,
+                        stdout=sp.DEVNULL,
+                        stderr=sp.DEVNULL,
+                        env=env,
+                        check=check).returncode
