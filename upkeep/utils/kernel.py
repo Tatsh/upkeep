@@ -216,8 +216,8 @@ def rebuild_kernel(num_cpus: int | None = None,
          '@module-rebuild', '@x11-module-rebuild'),
     )
     for cmd in commands:
-        logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
-        runner.run(cmd)
+        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
+        runner.suppress_output(cmd)
     Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
     commands = (('find', '/boot', '-maxdepth', '1', '(', '-name',
                  'initramfs-*', '-o', '-name', 'vmlinuz-*', '-o', '-iname',
@@ -271,7 +271,8 @@ def upgrade_kernel(num_cpus: int | None = None,
     rebuild_kernel
     """
     runner = CommandRunner()
-    kernel_list = runner.run(('eselect', '--colour=no', 'kernel', 'list'))
+    kernel_list = runner.run(('eselect', '--colour=no', 'kernel', 'list'),
+                             stdout=sp.PIPE)
     lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
     if not any(re.search(r'\*$', line) for line in lines):
         logger.info('Select a kernel to upgrade to (eselect kernel set ...).')
@@ -280,7 +281,8 @@ def upgrade_kernel(num_cpus: int | None = None,
         return None
     if (len([
             s for s in runner.run(('eselect', '--colour=no', '--brief',
-                                   'kernel', 'list')).stdout.splitlines() if s
+                                   'kernel', 'list'),
+                                  stdout=sp.PIPE).stdout.splitlines() if s
     ]) > 2):
         logger.info(
             'Unexpected number of lines (eselect --brief). Not updating '
@@ -300,7 +302,7 @@ def upgrade_kernel(num_cpus: int | None = None,
             raise click.Abort()
         return
     cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
-    logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
+    logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
     runner.run(cmd)
     try:
         rebuild_kernel(num_cpus, config_path)
