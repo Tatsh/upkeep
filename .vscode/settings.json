@@ -67,6 +67,7 @@
   "editor.insertSpaces": true,
   "editor.rulers": [100],
   "editor.tabSize": 2,
+  "esbonio.sphinx.confDir": "${workspaceFolder}/source",
   "python.analysis.stubPath": ".stubs",
   "python.analysis.typeCheckingMode": "strict",
   "python.defaultInterpreterPath": "~/.virtualenvs/upkeep/bin/python",
