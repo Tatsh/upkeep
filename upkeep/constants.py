@@ -24,5 +24,6 @@ KERNEL_SOURCE_DIR: Final[str] = '/usr/src/linux'
 OLD_KERNELS_DIR: Final[str] = '/var/lib/upkeep/old-kernels'
 SPECIAL_ENV: Final[tuple[str, ...]] = ('CONFIG_PROTECT', 'CONFIG_PROTECT_MASK',
                                        'FEATURES', 'HOME', 'LANG', 'MAKEOPTS',
-                                       'PATH', 'SHELL', 'SSH_AGENT_PID',
+                                       'PATH', 'PORTAGE_COMPRESSION_COMMAND',
+                                       'SHELL', 'SSH_AGENT_PID',
                                        'SSH_AUTH_SOCK', 'TERM', 'USE')
