@@ -244,9 +244,10 @@ def rebuild_kernel(num_cpus: int | None = None,
     _update_systemd_boot(config_path)
 
 
-def upgrade_kernel(num_cpus: int | None = None,
-                   config_path: str | None = None,
-                   fatal: bool | None = True) -> None:
+def upgrade_kernel(  # pylint: disable=too-many-branches
+        num_cpus: int | None = None,
+        config_path: str | None = None,
+        fatal: bool | None = True) -> None:
     """
     Upgrades the kernel.
 
@@ -302,7 +303,7 @@ def upgrade_kernel(num_cpus: int | None = None,
         logger.info('Unexpected number of lines. Not updating kernel.')
         if fatal:
             raise click.Abort()
-        return
+        return None
     cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
     logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
     runner.suppress_output(cmd)

@@ -14,7 +14,7 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
             return False
         if x == CONFIG_GZ:
             return True
-        raise Exception(x)
+        raise Exception(x)  # pylint: disable=broad-exception-raised
 
     mocker.patch('upkeep.utils.kernel.isfile', new=isfile)
     mocker.patch('upkeep.utils.kernel.chdir')

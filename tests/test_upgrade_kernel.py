@@ -11,7 +11,6 @@ import pytest
 
 from upkeep.commands import emerges_command as emerges
 from upkeep.constants import GRUB_CFG, OLD_KERNELS_DIR
-from upkeep.exceptions import KernelConfigError
 from upkeep.utils.kernel import _esp_path, _has_grub, upgrade_kernel
 
 from .utils import SubprocessMocker

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-# pylint: disable=too-few-public-methods,import-outside-toplevel
+# pylint: disable=too-few-public-methods,import-outside-toplevel,too-many-arguments
 from typing import Sequence, TypedDict
 import json
 import subprocess as sp

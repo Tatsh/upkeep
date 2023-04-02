@@ -10,7 +10,8 @@ disable=missing-class-docstring,
         missing-function-docstring,
         missing-module-docstring,
         redefined-builtin,
-        unspecified-encoding
+        unspecified-encoding,
+        use-dict-literal
 
 [REFACTORING]
 max-nested-blocks=6
