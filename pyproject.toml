@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "upkeep"
-version = "1.4.0"
+version = "1.4.1"
 description = "Portage update helper commands."
 authors = ["Andrew Udvare <audvare@gmail.com>"]
 license = "MIT"
@@ -34,8 +34,8 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-ecleans = "upkeep.commands:ecleans"
-emerges = "upkeep.commands:emerges"
-esync = "upkeep.commands:esync"
-rebuild-kernel = "upkeep.commands:rebuild_kernel"
-upgrade-kernel = "upkeep.commands:upgrade_kernel"
+ecleans = "upkeep.commands:ecleans_command"
+emerges = "upkeep.commands:emerges_command"
+esync = "upkeep.commands:esync_command"
+rebuild-kernel = "upkeep.commands:rebuild_kernel_command"
+upgrade-kernel = "upkeep.commands:upgrade_kernel_command"
