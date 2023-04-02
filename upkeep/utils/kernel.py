@@ -277,7 +277,6 @@ def upgrade_kernel(  # pylint: disable=too-many-branches
                              stdout=sp.PIPE)
     lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
     if not any(re.search(r'\*$', line) for line in lines):
-        print('lines = ', kernel_list)
         logger.info('Select a kernel to upgrade to (eselect kernel set ...).')
         if fatal:
             raise click.Abort()

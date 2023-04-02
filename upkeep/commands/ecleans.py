@@ -32,7 +32,6 @@ def ecleans() -> None:
     int
         Exit code of the last command.
     """
-    print('@@ runner = ')
     runner = CommandRunner()
     try:
         for command in ECLEANS_COMMANDS:
