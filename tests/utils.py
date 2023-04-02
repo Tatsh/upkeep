@@ -19,10 +19,10 @@ class MakeKeyKwargsOptional(TypedDict, total=False):
 
 
 class MakeKeyKwargs(MakeKeyKwargsOptional):
-    env: Mapping[str, str]
+    env: Mapping[str, str] | None
 
 
-def _make_key(*args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]) -> str:
+def _make_key(args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]) -> str:
     kwargs.pop('text', None)
     return json.dumps({**kwargs, **dict(args=args)}, sort_keys=True)
 
@@ -45,11 +45,11 @@ class SubprocessMocker:
         self.history: list[str] = []
 
     def get_output(
-        self, *args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]
+        self, args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]
     ) -> _FakeCompletedProcess | sp.CalledProcessError | None:
         from upkeep.utils import minenv
-        self.history.append(' '.join(args[0]))
-        key = _make_key(*args,
+        self.history.append(' '.join(args))
+        key = _make_key(args,
                         env=kwargs.get('env', minenv()),
                         check=kwargs.get('check', False),
                         stdout=kwargs.get('stdout', None),
@@ -68,7 +68,8 @@ class SubprocessMocker:
                 closest += f'Closest match:\n{existing_keys[possible_keys[0][1]]}'
                 closest += f'\nDistance: {possible_keys[0][0]}'
                 pytest.fail(f'Failed to find key:\n{key}{closest}')
-            return None
+            else:
+                pytest.fail(f'Failed to find key:\n{key}. No keys were set!')
         if isinstance(val, BaseException):
             raise val
         return val
@@ -77,16 +78,16 @@ class SubprocessMocker:
         self._outputs = {}
 
     def add_output(self,
-                   *args: Sequence[str],
+                   args: Sequence[str],
                    stderr_output: str | None = None,
                    stdout_output: str | None = None,
                    stdout: int | None = None,
                    stderr: int | None = None,
-                   env: Mapping[str, str],
+                   env: Mapping[str, str] | None = None,
                    check: bool = False,
                    returncode: int = 0,
                    raise_: bool = False) -> None:
-        key = _make_key(*args,
+        key = _make_key(args,
                         check=check,
                         env=env,
                         stderr=stderr,
@@ -96,35 +97,37 @@ class SubprocessMocker:
                                                        stderr_output,
                                                        returncode)
         else:
-            self._outputs[key] = sp.CalledProcessError(returncode or 255,
-                                                       args[0], stdout_output,
+            self._outputs[key] = sp.CalledProcessError(returncode or 255, args,
+                                                       stdout_output,
                                                        stderr_output)
 
     def add_output3(self,
-                    *args: Sequence[str],
+                    args: Sequence[str],
                     stdout_output: str | None = None,
+                    stdout: int | None = sp.PIPE,
+                    stderr: int | None = None,
                     raise_: bool = False,
                     returncode: int = 0) -> None:
         from upkeep.utils import minenv
-        self.add_output(check=True,
-                        stdout=sp.PIPE,
-                        stderr=sp.PIPE,
+        self.add_output(args,
+                        check=True,
+                        stdout=stdout,
+                        stderr=stderr,
                         env=minenv(),
                         stdout_output=stdout_output,
                         raise_=raise_,
-                        returncode=returncode,
-                        *args)
+                        returncode=returncode)
 
     def add_output4(self,
-                    *args: Sequence[str],
+                    args: Sequence[str],
                     check: bool = False,
                     stdout: int | None = None,
                     stderr: int | None = None,
                     raise_: bool = False) -> None:
         from upkeep.utils import minenv
-        self.add_output(raise_=raise_,
+        self.add_output(args,
+                        raise_=raise_,
                         stdout=stdout,
                         stderr=stderr,
                         check=check,
-                        env=minenv(),
-                        *args)
+                        env=minenv())
