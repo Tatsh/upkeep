@@ -236,7 +236,7 @@ def rebuild_kernel(num_cpus: int | None = None,
     if _has_grub() or _uefi_unified():
         kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
         cmd = ('dracut', '--force', '--kver', kver_arg)
-        logger.info(f'Running: f{" ".join(quote(c) for c in cmd)}')
+        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
         runner.suppress_output(cmd)
     if _has_grub():
         _update_grub()
@@ -276,6 +276,7 @@ def upgrade_kernel(num_cpus: int | None = None,
                              stdout=sp.PIPE)
     lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
     if not any(re.search(r'\*$', line) for line in lines):
+        print('lines = ', kernel_list)
         logger.info('Select a kernel to upgrade to (eselect kernel set ...).')
         if fatal:
             raise click.Abort()

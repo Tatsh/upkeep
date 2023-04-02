@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: MIT
-from .ecleans import ecleans
-from .emerges import emerges
-from .esync import esync
-from .kernel import (rebuild_kernel_command as rebuild_kernel,
-                     upgrade_kernel_command as upgrade_kernel)
+from .ecleans import ecleans as ecleans_command
+from .emerges import emerges as emerges_command
+from .esync import esync as esync_command
+from .kernel import rebuild_kernel_command, upgrade_kernel_command
 
-__all__ = ('ecleans', 'emerges', 'esync', 'rebuild_kernel', 'upgrade_kernel')
+__all__ = ('ecleans_command', 'emerges_command', 'esync_command',
+           'rebuild_kernel_command', 'upgrade_kernel_command')

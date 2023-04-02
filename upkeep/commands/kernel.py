@@ -40,7 +40,8 @@ def kernel_command(
                   default=cpu_count() + 1,
                   help='Number of tasks to run simultaneously')
     @umask(new_umask=0o022)
-    def ret(number_of_jobs: int, config: str) -> None:
+    def ret(number_of_jobs: int = 0,
+            config: str = DEFAULT_USER_CONFIG) -> None:
         try:
             return func(number_of_jobs, config)
         except KernelConfigError as e:

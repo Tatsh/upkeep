@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MIT
 from inspect import isfunction
+from typing import cast
 
+from click.testing import CliRunner
 import click
-import pytest
 
 from upkeep.commands.kernel import kernel_command
 from upkeep.decorators import umask
-from upkeep.exceptions import KernelConfigError
 
 
 def test_umask_with_function() -> None:
@@ -16,13 +16,15 @@ def test_umask_with_function() -> None:
 
 
 def test_kernel_command() -> None:
-    assert kernel_command(lambda x, y: None)() is None
+    assert CliRunner().invoke(
+        cast(click.BaseCommand,
+             kernel_command(lambda x, y: None))).exit_code == 0
 
 
 def test_kernel_command_raise() -> None:
 
     def raise_(_x: int | None, _y: str | None) -> None:
-        raise KernelConfigError()
+        raise click.Abort()
 
-    with pytest.raises(click.Abort):
-        kernel_command(raise_)()
+    assert CliRunner().invoke(cast(click.BaseCommand,
+                                   kernel_command(raise_))).exit_code != 0

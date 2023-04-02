@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 # pylint: disable=too-few-public-methods,import-outside-toplevel
-from typing import Mapping, Sequence, TypedDict
+from typing import Sequence, TypedDict
 import json
 import subprocess as sp
 
@@ -19,7 +19,7 @@ class MakeKeyKwargsOptional(TypedDict, total=False):
 
 
 class MakeKeyKwargs(MakeKeyKwargsOptional):
-    env: Mapping[str, str] | None
+    pass
 
 
 def _make_key(args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]) -> str:
@@ -47,10 +47,8 @@ class SubprocessMocker:
     def get_output(
         self, args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]
     ) -> _FakeCompletedProcess | sp.CalledProcessError | None:
-        from upkeep.utils import minenv
         self.history.append(' '.join(args))
         key = _make_key(args,
-                        env=kwargs.get('env', minenv()),
                         check=kwargs.get('check', False),
                         stdout=kwargs.get('stdout', None),
                         stderr=kwargs.get('stderr', None),
@@ -83,15 +81,10 @@ class SubprocessMocker:
                    stdout_output: str | None = None,
                    stdout: int | None = None,
                    stderr: int | None = None,
-                   env: Mapping[str, str] | None = None,
                    check: bool = False,
                    returncode: int = 0,
                    raise_: bool = False) -> None:
-        key = _make_key(args,
-                        check=check,
-                        env=env,
-                        stderr=stderr,
-                        stdout=stdout)
+        key = _make_key(args, check=check, stderr=stderr, stdout=stdout)
         if not raise_:
             self._outputs[key] = _FakeCompletedProcess(stdout_output,
                                                        stderr_output,
@@ -108,12 +101,10 @@ class SubprocessMocker:
                     stderr: int | None = None,
                     raise_: bool = False,
                     returncode: int = 0) -> None:
-        from upkeep.utils import minenv
         self.add_output(args,
                         check=True,
                         stdout=stdout,
                         stderr=stderr,
-                        env=minenv(),
                         stdout_output=stdout_output,
                         raise_=raise_,
                         returncode=returncode)
@@ -124,10 +115,8 @@ class SubprocessMocker:
                     stdout: int | None = None,
                     stderr: int | None = None,
                     raise_: bool = False) -> None:
-        from upkeep.utils import minenv
         self.add_output(args,
                         raise_=raise_,
                         stdout=stdout,
                         stderr=stderr,
-                        check=check,
-                        env=minenv())
+                        check=check)

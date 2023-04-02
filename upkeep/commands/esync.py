@@ -26,9 +26,9 @@ def esync(debug: bool = False, run_layman: bool = False) -> None:
     if run_layman:
         try:
             runner.run(('which', 'layman'))
-        except sp.CalledProcessError:
+        except sp.CalledProcessError as e:
             logger.error('You need to have app-portage/layman installed')
-            return
+            raise click.Abort() from e
         try:
             runner.run(('layman', '-S'))
         except sp.CalledProcessError as e:
