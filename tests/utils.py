@@ -13,8 +13,8 @@ __all__ = ('SubprocessMocker', )
 
 class MakeKeyKwargsOptional(TypedDict, total=False):
     check: bool
-    stderr: int
-    stdout: int
+    stderr: int | None
+    stdout: int | None
     text: bool
 
 
@@ -52,8 +52,8 @@ class SubprocessMocker:
         key = _make_key(*args,
                         env=kwargs.get('env', minenv()),
                         check=kwargs.get('check', False),
-                        stdout=kwargs.get('stdout', -1),
-                        stderr=kwargs.get('stderr', -1),
+                        stdout=kwargs.get('stdout', None),
+                        stderr=kwargs.get('stderr', None),
                         text=kwargs.get('text', True))
         try:
             val = self._outputs[key]
@@ -80,8 +80,8 @@ class SubprocessMocker:
                    *args: Sequence[str],
                    stderr_output: str | None = None,
                    stdout_output: str | None = None,
-                   stdout: int = -1,
-                   stderr: int = -1,
+                   stdout: int | None = None,
+                   stderr: int | None = None,
                    env: Mapping[str, str],
                    check: bool = False,
                    returncode: int = 0,
@@ -118,8 +118,8 @@ class SubprocessMocker:
     def add_output4(self,
                     *args: Sequence[str],
                     check: bool = False,
-                    stdout: int = -1,
-                    stderr: int = -1,
+                    stdout: int | None = None,
+                    stderr: int | None = None,
                     raise_: bool = False) -> None:
         from upkeep.utils import minenv
         self.add_output(raise_=raise_,
