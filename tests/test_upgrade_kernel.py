@@ -193,7 +193,6 @@ T = TypeVar('T')
 
 def test_upgrade_kernel_rebuild_systemd_boot_no_esp_path(
         mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
-
     def identity(x: T) -> T:
         return x
 
@@ -313,9 +312,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
 
 def test_upgrade_kernel_rebuild_systemd_boot_normal(
         mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
-
     class FakeFile:
-
         def __init__(self, content: bytes = b''):
             self.content = content
 
@@ -335,7 +332,6 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
             pass
 
     class PathMock:
-
         def __init__(self, name: str):
             self.name = name
 

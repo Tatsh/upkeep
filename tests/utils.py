@@ -8,7 +8,7 @@ from Levenshtein import distance
 from typing_extensions import Unpack
 import pytest
 
-__all__ = ('SubprocessMocker', )
+__all__ = ('SubprocessMocker',)
 
 
 class MakeKeyKwargsOptional(TypedDict, total=False):
@@ -28,7 +28,6 @@ def _make_key(args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]) -> str:
 
 
 class _FakeCompletedProcess:
-
     def __init__(self,
                  stdout_output: str | None = None,
                  stderr_output: str | None = None,
@@ -39,7 +38,6 @@ class _FakeCompletedProcess:
 
 
 class SubprocessMocker:
-
     def __init__(self) -> None:
         self._outputs: dict[str, _FakeCompletedProcess | BaseException] = {}
         self.history: list[str] = []
@@ -86,13 +84,11 @@ class SubprocessMocker:
                    raise_: bool = False) -> None:
         key = _make_key(args, check=check, stderr=stderr, stdout=stdout)
         if not raise_:
-            self._outputs[key] = _FakeCompletedProcess(stdout_output,
-                                                       stderr_output,
-                                                       returncode)
+            self._outputs[key] = _FakeCompletedProcess(
+                stdout_output, stderr_output, returncode)
         else:
-            self._outputs[key] = sp.CalledProcessError(returncode or 255, args,
-                                                       stdout_output,
-                                                       stderr_output)
+            self._outputs[key] = sp.CalledProcessError(
+                returncode or 255, args, stdout_output, stderr_output)
 
     def add_output3(self,
                     args: Sequence[str],

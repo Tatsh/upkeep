@@ -22,7 +22,6 @@ def test_kernel_command() -> None:
 
 
 def test_kernel_command_raise() -> None:
-
     def raise_(_x: int | None, _y: str | None) -> None:
         raise click.Abort()
 

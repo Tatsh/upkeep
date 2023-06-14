@@ -30,10 +30,12 @@ def test_emerges_live_rebuild(sp_mocker: SubprocessMocker,
     ],
                           check=True)
     sp_mocker.add_output4(
-        ['emerge', '--keep-going', '--quiet', '@live-rebuild'], check=True)
-    sp_mocker.add_output4(
-        ['emerge', '--keep-going', '--quiet', '@preserved-rebuild'],
+        ['emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'],
         check=True)
+    sp_mocker.add_output4([
+        'emerge', '--keep-going', '--quiet', '--usepkg=n', '@preserved-rebuild'
+    ],
+                          check=True)
     sp_mocker.add_output4(['which', 'systemctl'],
                           check=True,
                           stdout=sp.DEVNULL,
@@ -43,8 +45,8 @@ def test_emerges_live_rebuild(sp_mocker: SubprocessMocker,
                           stdout_output='')
     mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
     assert CliRunner().invoke(emerges).exit_code == 0
-    assert (
-        'emerge --keep-going --quiet @live-rebuild') in sp_mocker.history
+    assert ('emerge --keep-going --quiet --usepkg=n @live-rebuild'
+            ) in sp_mocker.history
 
 
 def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker,
@@ -58,11 +60,12 @@ def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker,
     sp_mocker.add_output4(('emerge', '--keep-going', '--tree', '--update',
                            '--deep', '--newuse', '@world', '--quiet'),
                           check=True)
+    sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n',
+                           '@preserved-rebuild'),
+                          check=True)
     sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--quiet', '@preserved-rebuild'),
+        ('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'),
         check=True)
-    sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--quiet', '@live-rebuild'), check=True)
     sp_mocker.add_output4(('which', 'systemctl'),
                           check=True,
                           stderr=sp.DEVNULL,
@@ -72,7 +75,7 @@ def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker,
                           stdout_output='')
     mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
     assert CliRunner().invoke(emerges).exit_code == 0
-    assert ('emerge --keep-going --quiet @preserved-rebuild'
+    assert ('emerge --keep-going --quiet --usepkg=n @preserved-rebuild'
             ) in sp_mocker.history
 
 
@@ -88,10 +91,11 @@ def test_emerges_daemon_reexec(sp_mocker: SubprocessMocker,
                            '--deep', '--newuse', '@world', '--quiet'),
                           check=True)
     sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--quiet', '@live-rebuild'), check=True)
-    sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--quiet', '@preserved-rebuild'),
+        ('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'),
         check=True)
+    sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n',
+                           '@preserved-rebuild'),
+                          check=True)
     sp_mocker.add_output4(('which', 'systemctl'),
                           check=True,
                           stderr=sp.DEVNULL,
@@ -116,10 +120,11 @@ def test_emerges_daemon_reexec_no_systemd(sp_mocker: SubprocessMocker,
                            '--deep', '--newuse', '@world', '--quiet'),
                           check=True)
     sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--quiet', '@live-rebuild'), check=True)
-    sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--quiet', '@preserved-rebuild'),
+        ('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'),
         check=True)
+    sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n',
+                           '@preserved-rebuild'),
+                          check=True)
     sp_mocker.add_output4(('which', 'systemctl'),
                           raise_=True,
                           check=True,

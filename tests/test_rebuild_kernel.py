@@ -8,7 +8,6 @@ from upkeep.utils.kernel import rebuild_kernel
 
 
 def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
-
     def isfile(x: str) -> bool:
         if x == '.config':
             return False
