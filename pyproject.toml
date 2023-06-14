@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "upkeep"
-version = "1.4.1"
+version = "1.4.2"
 description = "Portage update helper commands."
 authors = ["Andrew Udvare <audvare@gmail.com>"]
 license = "MIT"
