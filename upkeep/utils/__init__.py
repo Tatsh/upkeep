@@ -39,7 +39,6 @@ def minenv() -> Mapping[str, str]:
 
 
 class CommandRunner:
-
     def run(self,
             args: Sequence[str],
             *,

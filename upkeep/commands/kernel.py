@@ -27,13 +27,12 @@ def kernel_command(
     callable
         Callable that takes no parameters and returns an integer.
     """
-
     @click.command(func.__name__)
-    @click.option('-c',
-                  '--config',
-                  default=DEFAULT_USER_CONFIG,
-                  help=f'Configuration file. Defaults to {DEFAULT_USER_CONFIG}'
-                  )
+    @click.option(
+        '-c',
+        '--config',
+        default=DEFAULT_USER_CONFIG,
+        help=f'Configuration file. Defaults to {DEFAULT_USER_CONFIG}')
     @click.option('-j',
                   '--number-of-jobs',
                   type=int,

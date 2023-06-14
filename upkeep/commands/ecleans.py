@@ -7,7 +7,7 @@ import click
 from ..decorators import umask
 from ..utils import CommandRunner
 
-__all__ = ('ecleans', )
+__all__ = ('ecleans',)
 ECLEANS_COMMANDS = (('emerge', '--depclean',
                      '--quiet'), ('emerge', '--quiet', '@preserved-rebuild'),
                     ('revdep-rebuild', '--quiet'), ('eclean-dist', '--deep'),

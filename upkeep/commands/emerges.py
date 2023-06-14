@@ -56,8 +56,8 @@ def emerges(ask: bool = False,
 
     - ``emerge --oneshot --quiet --update portage``
     - ``emerge --keep-going --tree --quiet --update --deep --newuse @world``
-    - ``emerge --keep-going --quiet @live-rebuild``
-    - ``emerge --keep-going --quiet @preserved-rebuild``
+    - ``emerge --usepkg=n --keep-going --quiet @live-rebuild``
+    - ``emerge --usepkg=n --keep-going --quiet @preserved-rebuild``
     - ``systemctl daemon-reexec`` if applicable
     - upgrade kernel
 
@@ -91,13 +91,14 @@ def emerges(ask: bool = False,
             '--newuse', '@world'
         ] + ask_arg + verbose_arg + exclude_arg)
         if live_rebuild:
-            runner.check_call(
-                ('emerge', '--keep-going', '--quiet', '@live-rebuild'))
+            runner.check_call(('emerge', '--keep-going', '--quiet',
+                               '--usepkg=n', '@live-rebuild'))
         if preserved_rebuild:
             runner.check_call((
                 'emerge',
                 '--keep-going',
                 '--quiet',
+                '--usepkg=n',
                 '@preserved-rebuild',
             ))
     except sp.CalledProcessError as e:

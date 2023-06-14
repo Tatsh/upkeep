@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-__all__ = ('KernelConfigError', )
+__all__ = ('KernelConfigError',)
 
 
 class KernelConfigError(Exception):
