@@ -53,7 +53,7 @@ class SubprocessMocker:
                         text=kwargs.get('text', True))
         try:
             val = self._outputs[key]
-        except KeyError:
+        except KeyError: # pragma: no cover
             existing_keys = list(self._outputs.keys())
             closest = '\n'
             if existing_keys:
