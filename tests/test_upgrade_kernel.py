@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: MIT
+import subprocess as sp
 from multiprocessing import cpu_count
 from subprocess import CalledProcessError
-from typing import Any, TypeVar
-import subprocess as sp
+from typing import Any, Iterator, TypeVar
 
-from click.testing import CliRunner
-from pytest_mock.plugin import MockerFixture as MockFixture
 import click
 import pytest
+from click.testing import CliRunner
+from pytest_mock.plugin import MockerFixture as MockFixture
 
 from upkeep.commands import emerges_command as emerges
 from upkeep.constants import GRUB_CFG, OLD_KERNELS_DIR
@@ -165,8 +165,7 @@ def test_upgrade_kernel_rebuild_error_during_grub(
                           stdout=sp.DEVNULL,
                           stderr=sp.DEVNULL)
     sp_mocker.add_output3(
-        ('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
-         '@module-rebuild', '@x11-module-rebuild'),
+        ('emerge', '--keep-going', '@module-rebuild', '@x11-module-rebuild'),
         stdout=sp.DEVNULL,
         stderr=sp.DEVNULL)
     sp_mocker.add_output3(
@@ -224,8 +223,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_esp_path(
                           stdout=sp.DEVNULL,
                           stderr=sp.DEVNULL)
     sp_mocker.add_output3(
-        ('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
-         '@module-rebuild', '@x11-module-rebuild'),
+        ('emerge', '--keep-going', '@module-rebuild', '@x11-module-rebuild'),
         stdout=sp.DEVNULL,
         stderr=sp.DEVNULL)
     sp_mocker.add_output3(
@@ -286,8 +284,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_no_kernel_version(
                           stdout=sp.DEVNULL,
                           stderr=sp.DEVNULL)
     sp_mocker.add_output3(
-        ('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
-         '@module-rebuild', '@x11-module-rebuild'),
+        ('emerge', '--keep-going', '@module-rebuild', '@x11-module-rebuild'),
         stdout=sp.DEVNULL,
         stderr=sp.DEVNULL)
     sp_mocker.add_output3(
@@ -384,8 +381,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(
                           stdout=sp.DEVNULL,
                           stderr=sp.DEVNULL)
     sp_mocker.add_output3(
-        ('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
-         '@module-rebuild', '@x11-module-rebuild'),
+        ('emerge', '--keep-going', '@module-rebuild', '@x11-module-rebuild'),
         stdout=sp.DEVNULL,
         stderr=sp.DEVNULL)
     sp_mocker.add_output3(

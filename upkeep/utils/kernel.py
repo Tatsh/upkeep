@@ -1,20 +1,21 @@
 # SPDX-License-Identifier: MIT
+import gzip
+import re
+import shutil
+import subprocess as sp
 from contextlib import ExitStack
 from functools import lru_cache
 from glob import glob
 from multiprocessing import cpu_count
 from os import chdir, unlink
-from os.path import isfile, join as path_join, realpath
+from os.path import isfile, realpath
+from os.path import join as path_join
 from pathlib import Path
 from shlex import quote
 from typing import cast
-import gzip
-import re
-import shutil
-import subprocess as sp
 
-from loguru import logger
 import click
+from loguru import logger
 
 from ..constants import CONFIG_GZ, GRUB_CFG, KERNEL_SOURCE_DIR, OLD_KERNELS_DIR
 from ..exceptions import KernelConfigError
@@ -168,7 +169,7 @@ def rebuild_kernel(num_cpus: int | None = None,
     - ``make oldconfig``
     - ``make``
     - ``make modules_install``
-    - ``emerge --usepkg=n --quiet --keep-going --quiet-fail --verbose @module-rebuild @x11-module-rebuild``
+    - ``emerge --usepkg=n @module-rebuild @x11-module-rebuild``
     - Archives the old kernel and related files in ``/boot`` to the old kernels
       directory.
     - ``make install``
@@ -213,8 +214,7 @@ def rebuild_kernel(num_cpus: int | None = None,
     commands: tuple[tuple[str, ...], ...] = (
         ('make', f'-j{num_cpus}'),
         ('make', 'modules_install'),
-        ('emerge', '--quiet', '--keep-going', '--quiet-fail', '--verbose',
-         '@module-rebuild', '@x11-module-rebuild'),
+        ('emerge', '--keep-going', '@module-rebuild', '@x11-module-rebuild'),
     )
     for cmd in commands:
         logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
