@@ -23,70 +23,6 @@ from ..utils import get_config, get_temp_filename
 from . import CommandRunner
 
 
-def _update_grub() -> int:
-    args = ['grub2-mkconfig', '-o', GRUB_CFG]
-    runner = CommandRunner()
-    try:
-        return runner.suppress_output(args)
-    except (sp.CalledProcessError, FileNotFoundError):
-        args[0] = 'grub-mkconfig'
-        return runner.run(args).returncode
-
-
-def _bootctl_update_or_install() -> None:
-    runner = CommandRunner()
-    try:
-        runner.run(('bootctl', 'update'), stderr=sp.PIPE)
-    except sp.CalledProcessError as e:
-        ok = True
-        for line in cast(str, e.stderr).splitlines():
-            if ('Failed to test system token validity' in line
-                    or line.startswith('Skipping "')):
-                continue
-            ok = False
-        if not ok:
-            runner.suppress_output(('bootctl', 'install', '--graceful'))
-
-
-def _maybe_sign_exes(esp_path: str, config_path: str | None) -> None:
-    runner = CommandRunner()
-    config = None
-    if config_path:
-        config = get_config(config_path)
-    output_bootx64 = path_join(esp_path, 'EFI', 'BOOT', 'BOOTX64.EFI')
-    output_systemd_bootx64 = path_join(esp_path, 'EFI', 'systemd',
-                                       'systemd-bootx64.efi')
-    db_key: str | None = None
-    db_crt: str | None = None
-    if config:
-        db_key = config.get('systemd-boot', 'sign-key', fallback='')
-        db_crt = config.get('systemd-boot', 'sign-cert', fallback='')
-    if (not db_key or not db_crt and 'Secure Boot: enabled' in runner.run(
-        ('bootctl', 'status'), stdout=sp.PIPE).stdout):
-        logger.info(
-            'You appear to have Secure Boot enabled. Make sure to sign '
-            'the boot loader before rebooting. If you are using a unified'
-            ' EFI kernel image, you must sign it as well.')
-        return
-    tmp_bootx64 = get_temp_filename()
-    shutil.copy(output_bootx64, tmp_bootx64)
-    files_to_sign = (
-        (tmp_bootx64, output_bootx64),
-        (tmp_bootx64, output_systemd_bootx64),
-    )
-    assert db_crt is not None, 'Expected db_crt to be a path to a certificate (value is None)'
-    for input_file, output_path in files_to_sign:
-        cmd = ('sbsign', '--key', db_key, '--cert', db_crt, input_file,
-               '--output', output_path)
-        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
-        runner.suppress_output(cmd)
-        assert db_crt is not None
-        runner.suppress_output(('sbverify', '--cert', db_crt, output_path))
-    for input_file, _ in files_to_sign:
-        if isfile(input_file):
-            unlink(input_file)
-
-
 @lru_cache()
 def _get_kernel_version_suffix() -> str | None:
     with open('.config', 'r') as f:
@@ -135,27 +71,6 @@ def _esp_path() -> str:
                                stdout=sp.PIPE).stdout.split('\n')[0].strip()
 
 
-def _update_systemd_boot(config_path: str | None) -> None:
-    if not _esp_path():
-        raise KernelConfigError('`bootctl -p` returned empty string')
-    _bootctl_update_or_install()
-    kernel_version = _get_kernel_version()
-    if not kernel_version:
-        raise RuntimeError('Failed to detect Linux version')
-    if not _uefi_unified():
-        # Type #1 with kernel-install
-        # Dracut is expected to be installed which will add initrd
-        suffix = _get_kernel_version_suffix() or ''
-        cmd = ('kernel-install', 'add', f'{kernel_version}{suffix}',
-               f'/boot/vmlinuz-{kernel_version}{suffix}')
-        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
-        CommandRunner().run(cmd)
-    _maybe_sign_exes(_esp_path(), config_path)
-    # Clean up /boot
-    for path in Path('/boot').glob(f'*{kernel_version}*'):
-        path.unlink()
-
-
 def rebuild_kernel(num_cpus: int | None = None,
                    config_path: str | None = None) -> None:
     # pylint: disable=line-too-long
@@ -173,8 +88,10 @@ def rebuild_kernel(num_cpus: int | None = None,
     - Archives the old kernel and related files in ``/boot`` to the old kernels
       directory.
     - ``make install``
-    - ``dracut --force`` (if GRUB is installed)
-    - ``grub-mkconfig -o /boot/grub/grub.cfg`` (if GRUB is installed)
+
+    The expectation is that your configuration for kernelinstall will have the correct behaviour
+    such as running Dracut and building an initrd or unified image for UEFI booting. A matching
+    ``vmlinuz-*`` file is expected to appear in ``/boot``.
 
     Parameters
     ----------
@@ -223,25 +140,13 @@ def rebuild_kernel(num_cpus: int | None = None,
     commands = (('find', '/boot', '-maxdepth', '1', '(', '-name',
                  'initramfs-*', '-o', '-name', 'vmlinuz-*', '-o', '-iname',
                  'System.map*', '-o', '-iname', 'config-*', ')', '-exec', 'mv',
-                 '{}', OLD_KERNELS_DIR, ';'), (
-                     'make',
-                     'install',
-                 ))
+                 '{}', OLD_KERNELS_DIR, ';'), ('make', 'install'))
     for cmd in commands:
         logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
         try:
             runner.suppress_output(cmd)
         except sp.CalledProcessError:
             runner.suppress_output(('eselect', 'kernel', 'set', '1'))
-    if _has_grub() or _uefi_unified():
-        kver_arg = '-'.join(realpath('.').split('-')[1:]) + suffix
-        cmd = ('dracut', '--force', '--kver', kver_arg)
-        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
-        runner.suppress_output(cmd)
-    if _has_grub():
-        _update_grub()
-        return
-    _update_systemd_boot(config_path)
 
 
 def upgrade_kernel(  # pylint: disable=too-many-branches
