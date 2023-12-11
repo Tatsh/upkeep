@@ -31,9 +31,10 @@ __pycache__/
 ehthumbs.db
 Thumbs.db
 
+.pytest_cache/
+/.coverage
+/.vscode/.ropeproject/objectdb
 /build/
 /dist/
-/.vscode/.ropeproject/objectdb
-/.coverage
 /htmlcov/
 /source/_build/
