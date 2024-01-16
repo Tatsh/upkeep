@@ -73,7 +73,6 @@ def _esp_path() -> str:
 
 def rebuild_kernel(num_cpus: int | None = None,
                    config_path: str | None = None) -> None:
-    # pylint: disable=line-too-long
     """
     Rebuilds the kernel.
 
@@ -84,14 +83,11 @@ def rebuild_kernel(num_cpus: int | None = None,
     - ``make oldconfig``
     - ``make``
     - ``make modules_install``
-    - ``emerge --usepkg=n @module-rebuild @x11-module-rebuild``
-    - Archives the old kernel and related files in ``/boot`` to the old kernels
-      directory.
     - ``make install``
+    - ``emerge --usepkg=n @module-rebuild @x11-module-rebuild``
 
-    The expectation is that your configuration for kernelinstall will have the correct behaviour
-    such as running Dracut and building an initrd or unified image for UEFI booting. A matching
-    ``vmlinuz-*`` file is expected to appear in ``/boot``.
+    The expectation is that your configuration for installkernel will set up booting from the new
+    kernel (updating systemd-boot, etc).
 
     Parameters
     ----------
@@ -131,22 +127,12 @@ def rebuild_kernel(num_cpus: int | None = None,
     commands: tuple[tuple[str, ...], ...] = (
         ('make', f'-j{num_cpus}'),
         ('make', 'modules_install'),
+        ('make', 'install'),
         ('emerge', '--keep-going', '@module-rebuild', '@x11-module-rebuild'),
     )
     for cmd in commands:
         logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
         runner.suppress_output(cmd)
-    Path(OLD_KERNELS_DIR).mkdir(parents=True, exist_ok=True)
-    commands = (('find', '/boot', '-maxdepth', '1', '(', '-name',
-                 'initramfs-*', '-o', '-name', 'vmlinuz-*', '-o', '-iname',
-                 'System.map*', '-o', '-iname', 'config-*', ')', '-exec', 'mv',
-                 '{}', OLD_KERNELS_DIR, ';'), ('make', 'install'))
-    for cmd in commands:
-        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
-        try:
-            runner.suppress_output(cmd)
-        except sp.CalledProcessError:
-            runner.suppress_output(('eselect', 'kernel', 'set', '1'))
 
 
 def upgrade_kernel(  # pylint: disable=too-many-branches
@@ -234,7 +220,7 @@ def upgrade_kernel(  # pylint: disable=too-many-branches
     suffix = _get_kernel_version_suffix() or ''
     if _uefi_unified():
         for path in Path(_esp_path()).joinpath(
-                'EFI', 'Linux').glob(f'linux-{old_kernel}{suffix}*.efi'):
+                'EFI', 'Linux').glob(f'*-{old_kernel}{suffix}.efi'):
             path.unlink()
     else:
         cmd = ('kernel-install', 'remove', f'{old_kernel}{suffix}')
