@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: MIT
+from collections.abc import Callable
 from functools import wraps
 from os import umask as set_umask
-from typing import Callable, ParamSpec, TypeVar
+from typing import ParamSpec, TypeVar
 
 __all__ = ('umask',)
 
@@ -9,8 +10,7 @@ P = ParamSpec('P')
 T = TypeVar('T')
 
 
-def umask(new_umask: int,
-          restore: bool = False) -> Callable[[Callable[P, T]], Callable[P, T]]:
+def umask(new_umask: int, restore: bool = False) -> Callable[[Callable[P, T]], Callable[P, T]]:
     """Sets the umask before calling the decorated function."""
     def decorator_umask(func: Callable[P, T]) -> Callable[P, T]:
         @wraps(func)

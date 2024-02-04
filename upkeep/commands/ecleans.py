@@ -8,11 +8,10 @@ from ..decorators import umask
 from ..utils import CommandRunner
 
 __all__ = ('ecleans',)
-ECLEANS_COMMANDS = (('emerge', '--depclean',
-                     '--quiet'), ('emerge', '--quiet', '@preserved-rebuild'),
-                    ('revdep-rebuild', '--quiet'), ('eclean-dist', '--deep'),
-                    ('eclean-pkg', '--deep'), ['rm', '-fR'] +
-                    [str(s) for s in Path('/var/tmp/portage').glob('*')])
+ECLEANS_COMMANDS = (('emerge', '--depclean', '--quiet'),
+                    ('emerge', '--quiet', '@preserved-rebuild'), ('revdep-rebuild', '--quiet'),
+                    ('eclean-dist', '--deep'), ('eclean-pkg', '--deep'),
+                    ['rm', '-fR'] + [str(s) for s in Path('/var/tmp/portage').glob('*')])
 
 
 @click.command('ecleans')
@@ -37,4 +36,4 @@ def ecleans() -> None:
         for command in ECLEANS_COMMANDS:
             runner.check_call(command)
     except sp.CalledProcessError as e:
-        raise click.Abort() from e
+        raise click.Abort from e

@@ -1,40 +1,23 @@
-# Compiled
-# *.com
-*.class
-*.dll
-*.exe
-*.o
-*.so
+*.egg-info
 *.pyc
 *.pyo
-__pycache__/
-*.egg-info/
-
-# Backups
-*~
-*.swp*
-*.kate-swp
-
-# KDevelop
-.kdev4/
-
-# Miscellaneous
-*.sqlite
-
-# OS generated files
-.directory
+*.swp
+*pgpass*
 .DS_Store
 .DS_Store?
-._*
 .Spotlight-V100/
 .Trashes/
-ehthumbs.db
-Thumbs.db
-
+._*
+.coverage
+.directory
+.doctrees/
+.mypy_cache/
 .pytest_cache/
-/.coverage
-/.vscode/.ropeproject/objectdb
-/build/
-/dist/
+.ruff_cache/
+/docs/_build
 /htmlcov/
-/source/_build/
+/node_modules/
+/yarn-error.log
+__pycache__/
+build/
+dist/

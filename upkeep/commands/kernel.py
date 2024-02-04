@@ -1,18 +1,17 @@
 # SPDX-License-Identifier: MIT
+from collections.abc import Callable
 from multiprocessing import cpu_count
-from typing import Callable
 
 from loguru import logger
 import click
 
 from ..constants import DEFAULT_USER_CONFIG
 from ..decorators import umask
-from ..exceptions import KernelConfigError
+from ..exceptions import KernelError
 from ..utils.kernel import rebuild_kernel, upgrade_kernel
 
 
-def kernel_command(
-        func: Callable[[int | None, str | None], None]) -> Callable[[], None]:
+def kernel_command(func: Callable[[int | None, str | None], None]) -> click.BaseCommand:
     """
     CLI entry point for the ``upgrade-kernel`` and ``rebuild-kernel`` commands.
 
@@ -24,43 +23,43 @@ def kernel_command(
 
     Returns
     -------
-    callable
-        Callable that takes no parameters and returns an integer.
+    click.BaseCommand
+        Callable that takes no parameters and returns ``None``.
     """
     @click.command(func.__name__)
-    @click.option(
-        '-c',
-        '--config',
-        default=DEFAULT_USER_CONFIG,
-        help=f'Configuration file. Defaults to {DEFAULT_USER_CONFIG}')
+    @click.option('-c',
+                  '--config',
+                  default=DEFAULT_USER_CONFIG,
+                  help=f'Configuration file. Defaults to {DEFAULT_USER_CONFIG}')
     @click.option('-j',
                   '--number-of-jobs',
                   type=int,
                   default=cpu_count() + 1,
                   help='Number of tasks to run simultaneously')
     @umask(new_umask=0o022)
-    def ret(number_of_jobs: int = 0,
-            config: str = DEFAULT_USER_CONFIG) -> None:
+    def ret(number_of_jobs: int = 0, config: str = DEFAULT_USER_CONFIG) -> None:
         try:
             return func(number_of_jobs, config)
-        except KernelConfigError as e:
+        except KernelError as e:
             logger.error(f'Kernel configuration error: {e}')
-            raise click.Abort() from e
+            raise click.Abort from e
 
     return ret
 
 
-# pylint: disable=invalid-name
-#: Entry point for the ``upgrade-kernel`` command.
-#:
-#: See Also
-#: --------
-#: upgrade_kernel
 upgrade_kernel_command = kernel_command(upgrade_kernel)
-#: Entry point for the ``rebuild-kernel`` command.
-#:
-#: See Also
-#: --------
-#: rebuild_kernel
+"""
+Entry point for the ``upgrade-kernel`` command.
+
+See Also
+--------
+upgrade_kernel
+"""
 rebuild_kernel_command = kernel_command(rebuild_kernel)
-# pylint: enable=invalid-name
+"""
+Entry point for the ``rebuild-kernel`` command.
+
+See Also
+--------
+rebuild_kernel
+"""

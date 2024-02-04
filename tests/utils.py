@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
-# pylint: disable=too-few-public-methods,import-outside-toplevel,too-many-arguments
-from typing import Sequence, TypedDict
+from collections.abc import Sequence
+from typing import TypedDict
 import json
 import subprocess as sp
 
@@ -43,7 +43,7 @@ class SubprocessMocker:
         self.history: list[str] = []
 
     def get_output(
-        self, args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]
+            self, args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]
     ) -> _FakeCompletedProcess | sp.CalledProcessError | None:
         self.history.append(' '.join(args))
         key = _make_key(args,
@@ -53,7 +53,7 @@ class SubprocessMocker:
                         text=kwargs.get('text', True))
         try:
             val = self._outputs[key]
-        except KeyError: # pragma: no cover
+        except KeyError:  # pragma: no cover
             existing_keys = list(self._outputs.keys())
             closest = '\n'
             if existing_keys:
@@ -84,11 +84,10 @@ class SubprocessMocker:
                    raise_: bool = False) -> None:
         key = _make_key(args, check=check, stderr=stderr, stdout=stdout)
         if not raise_:
-            self._outputs[key] = _FakeCompletedProcess(
-                stdout_output, stderr_output, returncode)
+            self._outputs[key] = _FakeCompletedProcess(stdout_output, stderr_output, returncode)
         else:
-            self._outputs[key] = sp.CalledProcessError(
-                returncode or 255, args, stdout_output, stderr_output)
+            self._outputs[key] = sp.CalledProcessError(returncode or 255, args, stdout_output,
+                                                       stderr_output)
 
     def add_output3(self,
                     args: Sequence[str],
@@ -111,8 +110,4 @@ class SubprocessMocker:
                     stdout: int | None = None,
                     stderr: int | None = None,
                     raise_: bool = False) -> None:
-        self.add_output(args,
-                        raise_=raise_,
-                        stdout=stdout,
-                        stderr=stderr,
-                        check=check)
+        self.add_output(args, raise_=raise_, stdout=stdout, stderr=stderr, check=check)
