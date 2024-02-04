@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "upkeep"
-version = "1.4.3"
+version = "1.5.0"
 authors = ["Andrew Udvare <audvare@gmail.com>"]
 classifiers = [
   "Development Status :: 4 - Beta",
