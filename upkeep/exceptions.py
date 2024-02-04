@@ -1,6 +1,11 @@
 # SPDX-License-Identifier: MIT
-__all__ = ('KernelConfigError',)
+__all__ = ('KernelConfigMissing', 'KernelError')
 
 
-class KernelConfigError(Exception):
+class KernelError(FileNotFoundError):
     pass
+
+
+class KernelConfigMissing(KernelError):
+    def __init__(self) -> None:
+        super().__init__('Will not build without a .config file present')
