@@ -41,7 +41,6 @@ lextudio
 libjsonnet
 makeopts
 minenv
-mkconfig
 modindex
 mypy
 newuse

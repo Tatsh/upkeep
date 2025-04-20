@@ -3,15 +3,27 @@
 [![QA](https://github.com/Tatsh/upkeep/actions/workflows/qa.yml/badge.svg)](https://github.com/Tatsh/upkeep/actions/workflows/qa.yml)
 [![Tests](https://github.com/Tatsh/upkeep/actions/workflows/tests.yml/badge.svg)](https://github.com/Tatsh/upkeep/actions/workflows/tests.yml)
 [![Coverage Status](https://coveralls.io/repos/github/Tatsh/upkeep/badge.svg?branch=master)](https://coveralls.io/github/Tatsh/upkeep?branch=master)
-[![Documentation Status](https://readthedocs.org/projects/upkeep/badge/?version=latest)](https://upkeep.readthedocs.io/en/latest/?badge=latest)
-![PyPI - Version](https://img.shields.io/pypi/v/upkeep)
-![GitHub tag (with filter)](https://img.shields.io/github/v/tag/Tatsh/upkeep)
-![GitHub](https://img.shields.io/github/license/Tatsh/upkeep)
-![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/upkeep/v0.0.1/master)
+[![Documentation Status](https://readthedocs.org/projects/upkeep/badge/?version=latest)](https://upkeep.readthedocs.org/?badge=latest)
+[![PyPI - Version](https://img.shields.io/pypi/v/upkeep)](https://pypi.org/project/upkeep/)
+[![GitHub tag (with filter)](https://img.shields.io/github/v/tag/Tatsh/upkeep)](https://github.com/Tatsh/upkeep/tags)
+[![License](https://img.shields.io/github/license/Tatsh/upkeep)](https://github.com/Tatsh/upkeep/blob/master/LICENSE.txt)
+[![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/upkeep/v1.5.0/master)](https://github.com/Tatsh/upkeep/compare/v1.5.0...master)
 
 This is a set of commands to simplify maintaining a Gentoo system.
 
-[Documentation](https://upkeep.rtfd.io/)
+## Installation
+
+### Poetry
+
+```shell
+poetry add upkeep
+```
+
+### Pip
+
+```shell
+pip install upkeep
+```
 
 ## esync
 
