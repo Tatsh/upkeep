@@ -1,11 +1,11 @@
-# SPDX-License-Identifier: MIT
+from __future__ import annotations
+
 from inspect import isfunction
 
 from click.testing import CliRunner
-import click
-
 from upkeep.commands.kernel import kernel_command
 from upkeep.decorators import umask
+import click
 
 
 def test_umask_with_function() -> None:
@@ -15,7 +15,7 @@ def test_umask_with_function() -> None:
 
 
 def test_kernel_command() -> None:
-    assert CliRunner().invoke(kernel_command(lambda x: None)).exit_code == 0
+    assert CliRunner().invoke(kernel_command(lambda _: None)).exit_code == 0
 
 
 def test_kernel_command_raise() -> None:

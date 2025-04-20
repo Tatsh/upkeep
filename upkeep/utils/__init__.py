@@ -1,15 +1,19 @@
-# SPDX-License-Identifier: MIT
-from collections.abc import Mapping, Sequence
+from __future__ import annotations
+
 from functools import lru_cache
 from os import environ
 from shlex import quote
 from subprocess import CompletedProcess
-from typing import cast
+from typing import TYPE_CHECKING, cast
+import logging
 import subprocess as sp
 
-from loguru import logger
+from upkeep.constants import SPECIAL_ENV
 
-from ..constants import SPECIAL_ENV
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
+logger = logging.getLogger(__name__)
 
 
 @lru_cache
@@ -37,10 +41,10 @@ class CommandRunner:
                           text=True,
                           env=env or minenv())
         except sp.CalledProcessError as e:
-            logger.error(f'`{" ".join(quote(x) for x in cast(Sequence[str], e.cmd))}` '
-                         'failed')
-            logger.error(f'STDOUT: {cast(str, e.stdout)}')
-            logger.error(f'STDERR: {cast(str, e.stderr)}')
+            logger.exception('`%s` failed.', ' '.join(
+                quote(x) for x in cast('Sequence[str]', e.cmd)))
+            logger.exception('STDOUT: %s', cast('str', e.stdout))
+            logger.exception('STDERR: %s', cast('str', e.stderr))
             raise
 
     def check_call(self,
@@ -53,5 +57,6 @@ class CommandRunner:
     def suppress_output(self,
                         args: Sequence[str],
                         env: Mapping[str, str] | None = None,
+                        *,
                         check: bool = True) -> int:
         return self.run(args, stdout=sp.DEVNULL, stderr=sp.DEVNULL, env=env, check=check).returncode

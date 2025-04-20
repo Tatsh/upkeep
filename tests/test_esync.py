@@ -1,10 +1,14 @@
-# SPDX-License-Identifier: MIT
-from click.testing import CliRunner
-from pytest_mock import MockFixture
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from click.testing import CliRunner
 from upkeep.commands import esync_command as esync
 
-from .utils import SubprocessMocker
+if TYPE_CHECKING:
+    from pytest_mock import MockFixture
+
+    from .utils import SubprocessMocker
 
 
 def test_esync_no_eix(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:

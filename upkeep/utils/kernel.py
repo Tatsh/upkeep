@@ -1,21 +1,23 @@
-# SPDX-License-Identifier: MIT
+from __future__ import annotations
+
 from contextlib import ExitStack
 from multiprocessing import cpu_count
 from os import chdir
 from pathlib import Path
 from shlex import quote
 import gzip
+import logging
 import re
 import subprocess as sp
 
-from loguru import logger
-import click
+from upkeep.constants import CONFIG_GZ, KERNEL_SOURCE_DIR, MINIMUM_ESELECT_LINES
+from upkeep.exceptions import KernelConfigMissing
 
-from ..constants import CONFIG_GZ, KERNEL_SOURCE_DIR, MINIMUM_ESELECT_LINES
-from ..exceptions import KernelConfigMissing
 from . import CommandRunner
 
 __all__ = ('rebuild_kernel', 'upgrade_kernel')
+
+logger = logging.getLogger(__name__)
 
 
 def rebuild_kernel(num_cpus: int | None = None) -> None:
@@ -58,7 +60,7 @@ def rebuild_kernel(num_cpus: int | None = None) -> None:
     dot_config_exists = Path('.config').is_file()
     if not dot_config_exists and Path(CONFIG_GZ).is_file():
         with ExitStack() as stack:
-            stack.enter_context(open('.config', 'wb+')).write(
+            stack.enter_context(Path('.config').open('wb+')).write(
                 stack.enter_context(gzip.open(CONFIG_GZ)).read())
     if not dot_config_exists:
         raise KernelConfigMissing
@@ -69,11 +71,11 @@ def rebuild_kernel(num_cpus: int | None = None) -> None:
                                              ('emerge', '--keep-going', '@module-rebuild',
                                               '@x11-module-rebuild'), ('make', 'install'))
     for cmd in commands:
-        logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
+        logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
         runner.suppress_output(cmd)
 
 
-def upgrade_kernel(num_cpus: int | None = None, fatal: bool | None = True) -> None:
+def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) -> None:
     """
     Upgrades the kernel.
 
@@ -100,7 +102,8 @@ def upgrade_kernel(num_cpus: int | None = None, fatal: bool | None = True) -> No
     if not any(re.search(r'\*$', line) for line in lines):
         logger.info('Select a kernel to upgrade to (eselect kernel set ...).')
         if fatal:
-            raise click.Abort
+            msg = 'No kernel to upgrade to.'
+            raise ValueError(msg)
         return
     if (len([
             s for s in runner.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
@@ -108,7 +111,8 @@ def upgrade_kernel(num_cpus: int | None = None, fatal: bool | None = True) -> No
     ]) > MINIMUM_ESELECT_LINES):
         logger.info('Unexpected number of lines (eselect --brief). Not updating kernel.')
         if fatal:
-            raise click.Abort
+            msg = 'Too many lines from eselect.'
+            raise ValueError(msg)
         return
     unselected = None
     for line in (x for x in lines if not x.endswith('*')):
@@ -116,13 +120,11 @@ def upgrade_kernel(num_cpus: int | None = None, fatal: bool | None = True) -> No
             unselected = int(m.group(1))
             break
     if not unselected:
-        raise click.Abort
-    cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
-    logger.info(f'Running: {" ".join(quote(c) for c in cmd)}')
-    runner.suppress_output(cmd)
-    try:
-        rebuild_kernel(num_cpus)
-    except KernelConfigMissing as e:
-        logger.exception(e)
         if fatal:
-            raise click.Abort from e
+            msg = 'No value is unselected.'
+            raise ValueError(msg)
+        return
+    cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
+    logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
+    runner.suppress_output(cmd)
+    rebuild_kernel(num_cpus)

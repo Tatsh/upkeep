@@ -1,17 +1,21 @@
-# SPDX-License-Identifier: MIT
-from click.testing import CliRunner
-from pytest_mock.plugin import MockerFixture as MockFixture
-import pytest
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 from upkeep.commands.kernel import kernel_command
 from upkeep.constants import CONFIG_GZ
 from upkeep.exceptions import KernelError
 from upkeep.utils.kernel import rebuild_kernel
+import pytest
+
+if TYPE_CHECKING:
+    from click.testing import CliRunner
+    from pytest_mock.plugin import MockerFixture as MockFixture
 
 
 def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
     class FakePath:
-        def __init__(self, s: str):
+        def __init__(self, s: str) -> None:
             self.s = s
 
         def is_file(self) -> bool:

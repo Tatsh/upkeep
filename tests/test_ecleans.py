@@ -1,11 +1,15 @@
-# SPDX-License-Identifier: MIT
-from click.testing import CliRunner
-from pytest_mock import MockFixture
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from click.testing import CliRunner
 from upkeep.commands import ecleans_command as ecleans
 from upkeep.commands.ecleans import ECLEANS_COMMANDS
 
-from .utils import SubprocessMocker
+if TYPE_CHECKING:
+    from pytest_mock import MockFixture
+
+    from .utils import SubprocessMocker
 
 
 def test_ecleans_exception(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:

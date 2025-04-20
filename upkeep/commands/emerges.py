@@ -1,12 +1,13 @@
-# SPDX-License-Identifier: MIT
+from __future__ import annotations
+
 import subprocess as sp
 
 import click
 
-from ..constants import DEFAULT_USER_CONFIG
-from ..decorators import umask
-from ..utils import CommandRunner
-from .kernel import upgrade_kernel
+from upkeep.constants import DEFAULT_USER_CONFIG
+from upkeep.decorators import umask
+from upkeep.utils import CommandRunner
+from upkeep.utils.kernel import upgrade_kernel
 
 
 @click.command('emerges')
@@ -25,17 +26,18 @@ from .kernel import upgrade_kernel
 @click.option('-e', '--exclude', metavar='ATOM')
 @click.option('-v', '--verbose', is_flag=True, help='Pass --verbose to emerge and enable logging')
 @umask(new_umask=0o022)
-def emerges(ask: bool = False,
+def emerges(config: str | None = None,
+            exclude: str | None = None,
+            *,
+            ask: bool = False,
             no_live_rebuild: bool = False,
             no_preserved_rebuild: bool = False,
             no_daemon_reexec: bool = False,
             no_upgrade_kernel: bool = False,
-            config: str | None = None,
             fatal_upgrade_kernel: bool = False,
-            verbose: bool = False,
-            exclude: str | None = None) -> None:
+            verbose: bool = False) -> None:
     """
-    Runs the following steps:
+    Run the following steps:
 
     - ``emerge --oneshot --quiet --update portage``
     - ``emerge --keep-going --tree --quiet --update --deep --newuse @world``
@@ -56,7 +58,7 @@ def emerges(ask: bool = False,
     See Also
     --------
     upgrade_kernel
-    """
+    """  # noqa: D400
     live_rebuild = not no_live_rebuild
     preserved_rebuild = not no_preserved_rebuild
     daemon_reexec = not no_daemon_reexec
@@ -66,10 +68,11 @@ def emerges(ask: bool = False,
     exclude_arg = [f'--exclude={x}' for x in exclude or []]
     runner = CommandRunner()
     try:
-        runner.check_call(['emerge', '--oneshot', '--update', 'portage'] + verbose_arg)
-        runner.check_call(
-            ['emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world'] +
-            ask_arg + verbose_arg + exclude_arg)
+        runner.check_call(['emerge', '--oneshot', '--update', 'portage', *verbose_arg])
+        runner.check_call([
+            'emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world',
+            *ask_arg, *verbose_arg, *exclude_arg
+        ])
         if live_rebuild:
             runner.check_call(('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'))
         if preserved_rebuild:
@@ -81,6 +84,7 @@ def emerges(ask: bool = False,
                 '@preserved-rebuild',
             ))
     except sp.CalledProcessError as e:
+        click.echo(str(e), err=True)
         raise click.Abort from e
     if daemon_reexec:
         try:

@@ -1,22 +1,26 @@
-# SPDX-License-Identifier: MIT
-from collections.abc import Callable
+from __future__ import annotations
+
 from multiprocessing import cpu_count
 from subprocess import CalledProcessError
-from types import TracebackType
-from typing import Any, TypeVar
+from typing import TYPE_CHECKING, Any, TypeVar
 import subprocess as sp
 
 from click.testing import CliRunner
-from pytest_mock.plugin import MockerFixture as MockFixture
-import click
-import pytest
-
+from typing_extensions import Self, override
 from upkeep.commands import emerges_command as emerges
 from upkeep.constants import OLD_KERNELS_DIR
 from upkeep.exceptions import KernelConfigMissing
 from upkeep.utils.kernel import upgrade_kernel
+import click
+import pytest
 
-from .utils import SubprocessMocker
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from types import TracebackType
+
+    from pytest_mock.plugin import MockerFixture as MockFixture
+
+    from .utils import SubprocessMocker
 
 T = TypeVar('T')
 
@@ -90,7 +94,8 @@ def test_upgrade_kernel_eselect_kernel_set_invalid_output_from_eselect(
 def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
     mocker.patch('upkeep.utils.kernel.Path').return_value.glob = method_return1(['/etc/profile'])
     mocker.patch('upkeep.utils.kernel.chdir')
-    mocker.patch('upkeep.utils.kernel.Path').return_value.is_file = method_return(False)
+    mocker.patch('upkeep.utils.kernel.Path').return_value.is_file = method_return(
+        return_value=False)
     mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] \n',
@@ -109,7 +114,7 @@ def test_upgrade_kernel_rebuild_error_during_build(mocker: MockFixture,
     mocker.patch('upkeep.utils.kernel.Path').return_value.glob = method_return1(['/etc/profile'])
     mocker.patch('upkeep.utils.kernel.chdir')
     mocker.patch('upkeep.utils.kernel.open')
-    mocker.patch('upkeep.utils.kernel.Path').return_value.is_file = method_return(True)
+    mocker.patch('upkeep.utils.kernel.Path').return_value.is_file = method_return(return_value=True)
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
                           stdout_output=' [1] *\n [2] linux-5.6.14-gentoo\n')
     sp_mocker.add_output3(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
@@ -130,7 +135,7 @@ def test_upgrade_kernel_rebuild_error_during_build(mocker: MockFixture,
 def test_upgrade_kernel_rebuild_systemd_boot_normal(mocker: MockFixture,
                                                     sp_mocker: SubprocessMocker) -> None:
     class FakeFile:
-        def __init__(self, content: bytes = b''):
+        def __init__(self, content: bytes = b'') -> None:
             self.content = content
 
         def read(self, _count: int | None = None) -> bytes:
@@ -142,7 +147,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(mocker: MockFixture,
         def readlines(self) -> list[Any]:
             return []
 
-        def __enter__(self) -> 'FakeFile':
+        def __enter__(self) -> Self:
             return self
 
         def __exit__(self, _a: type[BaseException] | None, _b: BaseException | None,
@@ -150,10 +155,10 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(mocker: MockFixture,
             pass
 
     class PathMock:
-        def __init__(self, name: str):
+        def __init__(self, name: str) -> None:
             self.name = name
 
-        def glob(self, _glob_str: str) -> list['PathMock']:
+        def glob(self, _glob_str: str) -> list[PathMock]:
             if self.name == '/boot':
                 return [PathMock('mz-file'), PathMock('not-mz-file')]
             if self.name == '/etc/dracut.conf.d':
@@ -174,12 +179,13 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(mocker: MockFixture,
         def unlink(self) -> None:
             pass
 
-        def joinpath(self, *args: Any) -> 'PathMock':
+        def joinpath(self, *args: Any) -> PathMock:
             return self
 
         def is_file(self) -> bool:
             return True
 
+        @override
         def __str__(self) -> str:
             return self.name
 

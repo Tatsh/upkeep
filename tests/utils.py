@@ -1,12 +1,16 @@
-# SPDX-License-Identifier: MIT
-from collections.abc import Sequence
-from typing import TypedDict
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, TypedDict
 import json
 import subprocess as sp
 
 from Levenshtein import distance
 from typing_extensions import Unpack
 import pytest
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 __all__ = ('SubprocessMocker',)
 
@@ -24,17 +28,14 @@ class MakeKeyKwargs(MakeKeyKwargsOptional):
 
 def _make_key(args: Sequence[str], **kwargs: Unpack[MakeKeyKwargs]) -> str:
     kwargs.pop('text', None)
-    return json.dumps({**kwargs, **dict(args=args)}, sort_keys=True)
+    return json.dumps({**kwargs, 'args': args}, sort_keys=True)
 
 
+@dataclass
 class _FakeCompletedProcess:
-    def __init__(self,
-                 stdout_output: str | None = None,
-                 stderr_output: str | None = None,
-                 returncode: int = 0):
-        self.stdout = stdout_output
-        self.stderr = stderr_output
-        self.returncode = returncode
+    stdout: str | None = None
+    stderr: str | None = None
+    returncode: int = 0
 
 
 class SubprocessMocker:
@@ -48,8 +49,8 @@ class SubprocessMocker:
         self.history.append(' '.join(args))
         key = _make_key(args,
                         check=kwargs.get('check', False),
-                        stdout=kwargs.get('stdout', None),
-                        stderr=kwargs.get('stderr', None),
+                        stdout=kwargs.get('stdout'),
+                        stderr=kwargs.get('stderr'),
                         text=kwargs.get('text', True))
         try:
             val = self._outputs[key]
@@ -79,8 +80,9 @@ class SubprocessMocker:
                    stdout_output: str | None = None,
                    stdout: int | None = None,
                    stderr: int | None = None,
-                   check: bool = False,
                    returncode: int = 0,
+                   *,
+                   check: bool = False,
                    raise_: bool = False) -> None:
         key = _make_key(args, check=check, stderr=stderr, stdout=stdout)
         if not raise_:
@@ -94,8 +96,9 @@ class SubprocessMocker:
                     stdout_output: str | None = None,
                     stdout: int | None = sp.PIPE,
                     stderr: int | None = None,
-                    raise_: bool = False,
-                    returncode: int = 0) -> None:
+                    returncode: int = 0,
+                    *,
+                    raise_: bool = False) -> None:
         self.add_output(args,
                         check=True,
                         stdout=stdout,
@@ -106,8 +109,9 @@ class SubprocessMocker:
 
     def add_output4(self,
                     args: Sequence[str],
-                    check: bool = False,
                     stdout: int | None = None,
                     stderr: int | None = None,
+                    *,
+                    check: bool = False,
                     raise_: bool = False) -> None:
         self.add_output(args, raise_=raise_, stdout=stdout, stderr=stderr, check=check)

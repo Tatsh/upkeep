@@ -1,13 +1,16 @@
-# SPDX-License-Identifier: MIT
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
 import subprocess as sp
 import sys
 
 from click.testing import CliRunner
-from pytest_mock import MockFixture
-
 from upkeep.commands import emerges_command as emerges
 
-from .utils import SubprocessMocker
+if TYPE_CHECKING:
+    from pytest_mock import MockFixture
+
+    from .utils import SubprocessMocker
 
 
 def test_emerges_keyboard_interrupt(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:

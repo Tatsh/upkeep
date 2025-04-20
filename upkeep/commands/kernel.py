@@ -1,13 +1,16 @@
-# SPDX-License-Identifier: MIT
-from collections.abc import Callable
-from multiprocessing import cpu_count
+from __future__ import annotations
 
-from loguru import logger
+from multiprocessing import cpu_count
+from typing import TYPE_CHECKING
+
 import click
 
-from ..decorators import umask
-from ..exceptions import KernelError
-from ..utils.kernel import rebuild_kernel, upgrade_kernel
+from upkeep.decorators import umask
+from upkeep.exceptions import KernelError
+from upkeep.utils.kernel import rebuild_kernel, upgrade_kernel
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 def kernel_command(func: Callable[[int | None], None]) -> click.BaseCommand:
@@ -35,7 +38,7 @@ def kernel_command(func: Callable[[int | None], None]) -> click.BaseCommand:
         try:
             return func(number_of_jobs)
         except KernelError as e:
-            logger.error(f'Kernel configuration error: {e}')
+            click.echo(f'Kernel configuration error: {str(e) or "unknown"}', err=True)
             raise click.Abort from e
 
     return ret
