@@ -18,6 +18,9 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
         def __init__(self, s: str) -> None:
             self.s = s
 
+        def write_bytes(self, _content: str, /) -> int:
+            return 0
+
         def is_file(self) -> bool:
             if self.s == '.config':
                 return False
@@ -27,12 +30,11 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
 
     mocker.patch('upkeep.utils.kernel.Path', new=FakePath)
     mocker.patch('upkeep.utils.kernel.chdir')
-    open_f = mocker.patch('upkeep.utils.kernel.open')
+    mocker.patch('upkeep.utils.kernel.open')
     gzip_open = mocker.patch('upkeep.utils.kernel.gzip.open')
     with pytest.raises(KernelError):
         rebuild_kernel(1)
     assert gzip_open.call_count == 1
-    assert open_f.call_count == 1
 
 
 def test_kernel_command_raises_abort(mocker: MockFixture, runner: CliRunner) -> None:

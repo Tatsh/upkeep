@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from contextlib import ExitStack
 from multiprocessing import cpu_count
 from os import chdir
 from pathlib import Path
@@ -11,7 +10,12 @@ import re
 import subprocess as sp
 
 from upkeep.constants import CONFIG_GZ, KERNEL_SOURCE_DIR, MINIMUM_ESELECT_LINES
-from upkeep.exceptions import KernelConfigMissing
+from upkeep.exceptions import (
+    KernelConfigMissing,
+    NoKernelToUpgradeTo,
+    NoValueIsUnselected,
+    TooManyLinesFromEselect,
+)
 
 from . import CommandRunner
 
@@ -47,8 +51,6 @@ def rebuild_kernel(num_cpus: int | None = None) -> None:
     ------
     KernelConfigMissing
         If a kernel configuration cannot be found.
-    RuntimeError
-        If grub-mkconfig fails
 
     See Also
     --------
@@ -59,9 +61,8 @@ def rebuild_kernel(num_cpus: int | None = None) -> None:
     chdir(KERNEL_SOURCE_DIR)
     dot_config_exists = Path('.config').is_file()
     if not dot_config_exists and Path(CONFIG_GZ).is_file():
-        with ExitStack() as stack:
-            stack.enter_context(Path('.config').open('wb+')).write(
-                stack.enter_context(gzip.open(CONFIG_GZ)).read())
+        with gzip.open(CONFIG_GZ) as gz:
+            Path('.config').write_bytes(gz.read())
     if not dot_config_exists:
         raise KernelConfigMissing
     runner = CommandRunner()
@@ -100,10 +101,9 @@ def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) ->
     kernel_list = runner.run(('eselect', '--colour=no', 'kernel', 'list'), stdout=sp.PIPE)
     lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
     if not any(re.search(r'\*$', line) for line in lines):
-        logger.info('Select a kernel to upgrade to (eselect kernel set ...).')
+        logger.debug('Select a kernel to upgrade to (eselect kernel set ...).')
         if fatal:
-            msg = 'No kernel to upgrade to.'
-            raise ValueError(msg)
+            raise NoKernelToUpgradeTo
         return
     if (len([
             s for s in runner.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
@@ -111,8 +111,7 @@ def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) ->
     ]) > MINIMUM_ESELECT_LINES):
         logger.info('Unexpected number of lines (eselect --brief). Not updating kernel.')
         if fatal:
-            msg = 'Too many lines from eselect.'
-            raise ValueError(msg)
+            raise TooManyLinesFromEselect
         return
     unselected = None
     for line in (x for x in lines if not x.endswith('*')):
@@ -121,10 +120,14 @@ def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) ->
             break
     if not unselected:
         if fatal:
-            msg = 'No value is unselected.'
-            raise ValueError(msg)
+            raise NoValueIsUnselected
         return
     cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
-    logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
+    logger.debug('Running: %s', ' '.join(quote(c) for c in cmd))
     runner.suppress_output(cmd)
-    rebuild_kernel(num_cpus)
+    try:
+        rebuild_kernel(num_cpus)
+    except KernelConfigMissing:
+        if not fatal:
+            return
+        raise

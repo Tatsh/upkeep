@@ -9,9 +9,8 @@ from click.testing import CliRunner
 from typing_extensions import Self, override
 from upkeep.commands import emerges_command as emerges
 from upkeep.constants import OLD_KERNELS_DIR
-from upkeep.exceptions import KernelConfigMissing
+from upkeep.exceptions import KernelConfigMissing, NoValueIsUnselected
 from upkeep.utils.kernel import upgrade_kernel
-import click
 import pytest
 
 if TYPE_CHECKING:
@@ -105,7 +104,7 @@ def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture, sp_mocker: Subpro
                           stdout_output=' *\n \n')
     sp_mocker.add_output3(('eselect', 'kernel', 'set', '2'), stdout=sp.DEVNULL, stderr=sp.DEVNULL)
     mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
-    with pytest.raises(click.Abort):
+    with pytest.raises(KernelConfigMissing):
         upgrade_kernel()
 
 
@@ -231,7 +230,7 @@ def test_upgrade_kernel_eselect_kernel_non_fatal(mocker: MockFixture,
                           stdout_output=' [1] *\n [2] linux-5.6.6-gentoo\n')
     sp_mocker.add_output3(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
                           stdout_output=' *\n \n \n')
-    abort = mocker.patch('upkeep.utils.kernel.click.Abort')
+    abort = mocker.patch('upkeep.utils.kernel.KernelConfigMissing')
     upgrade_kernel(fatal=False)
     assert abort.call_count == 0
 
@@ -245,9 +244,10 @@ def test_upgrade_kernel_no_config_non_fatal(mocker: MockFixture,
                           stdout_output=' *\n \n')
     sp_mocker.add_output3(('eselect', 'kernel', 'set', '2'), stdout=sp.DEVNULL, stderr=sp.DEVNULL)
     mocker.patch('upkeep.utils.kernel.rebuild_kernel', side_effect=KernelConfigMissing)
-    abort = mocker.patch('upkeep.utils.kernel.click.Abort')
-    upgrade_kernel(fatal=False)
-    assert abort.call_count == 0
+    try:
+        upgrade_kernel(fatal=False)
+    except KernelConfigMissing:
+        pytest.fail('KernelConfigMissing was raised')
 
 
 def test_upgrade_kernel_eselect_no_selection(mocker: MockFixture,
@@ -256,8 +256,8 @@ def test_upgrade_kernel_eselect_no_selection(mocker: MockFixture,
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'), stdout_output='*\n\n')
     sp_mocker.add_output3(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
                           stdout_output='*\n\n')
-    with pytest.raises(click.Abort):
-        upgrade_kernel(fatal=False)
+    with pytest.raises(NoValueIsUnselected):
+        upgrade_kernel()
 
 
 def test_upgrade_kernel_eselect_no_selection2(mocker: MockFixture,
@@ -267,5 +267,18 @@ def test_upgrade_kernel_eselect_no_selection2(mocker: MockFixture,
                           stdout_output='[abc] *\n [abc]\n')
     sp_mocker.add_output3(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
                           stdout_output='*\n\n')
-    with pytest.raises(click.Abort):
+    with pytest.raises(NoValueIsUnselected):
+        upgrade_kernel()
+
+
+def test_upgrade_kernel_eselect_no_selection_non_fatal(mocker: MockFixture,
+                                                       sp_mocker: SubprocessMocker) -> None:
+    mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
+    sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
+                          stdout_output='[abc] *\n [abc]\n')
+    sp_mocker.add_output3(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
+                          stdout_output='*\n\n')
+    try:
         upgrade_kernel(fatal=False)
+    except NoValueIsUnselected:
+        pytest.fail('NoValueIsUnselected was raised')
