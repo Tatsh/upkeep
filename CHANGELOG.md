@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [1.6.0]
+
+### Added
+
 - Added support for managing the kernel booted by systemd-boot. Bootloader detection (GRUB or
   systemd-boot) is automatic.
 - Added support for automatic signing of EFI binaries. To use this feature, `app-crypt/sbsigntools`
@@ -19,8 +23,14 @@ and this project adheres to
   sign-cert = my-db.crt
   ```
 
-- `ecleans` no longer ignores exit codes from the commands it executes.
-- Improved `^C` (Ctrl+C) interruptions to be more user friendly.
 - Added [documentation](https://upkeep.readthedocs.io/en/latest/) to all public functions and
   commands.
 - Added help text to all command line arguments.
+
+### Changed
+
+- Improved `^C` (Ctrl+C) interruptions to be more user friendly.
+- `ecleans` no longer ignores exit codes from the commands it executes.
+- `upkeep.utils.rebuild_kernel` and `upgrade_kernel` functions raise more specific exceptions.
+
+[unreleased]: https://github.com/Tatsh/upkeep/-/compare/v1.5.0...HEAD
