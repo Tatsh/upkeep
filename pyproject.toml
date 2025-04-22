@@ -20,7 +20,7 @@ keywords = ["administration", "command line", "gentoo"]
 license = "MIT"
 name = "upkeep"
 readme = "README.md"
-version = "1.6.0"
+version = "1.6.1"
 
 [[project.authors]]
 email = "audvare@gmail.com"

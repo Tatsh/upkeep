@@ -7,7 +7,7 @@
 [![PyPI - Version](https://img.shields.io/pypi/v/upkeep)](https://pypi.org/project/upkeep/)
 [![GitHub tag (with filter)](https://img.shields.io/github/v/tag/Tatsh/upkeep)](https://github.com/Tatsh/upkeep/tags)
 [![License](https://img.shields.io/github/license/Tatsh/upkeep)](https://github.com/Tatsh/upkeep/blob/master/LICENSE.txt)
-[![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/upkeep/v1.6.0/master)](https://github.com/Tatsh/upkeep/compare/v1.6.0...master)
+[![GitHub commits since latest release (by SemVer including pre-releases)](https://img.shields.io/github/commits-since/Tatsh/upkeep/v1.6.1/master)](https://github.com/Tatsh/upkeep/compare/v1.6.1...master)
 
 This is a set of commands to simplify maintaining a Gentoo system.
 

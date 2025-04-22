@@ -5,7 +5,7 @@ local utils = import 'utils.libjsonnet';
   description: 'Portage update helper commands.',
   keywords: ['administration', 'command line', 'gentoo'],
   project_name: 'upkeep',
-  version: '1.6.0',
+  version: '1.6.1',
   want_main: true,
   citation+: {
     'date-released': '2025-04-19',
