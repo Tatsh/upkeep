@@ -12,11 +12,13 @@ local utils = import 'utils.libjsonnet';
   },
   pyproject+: {
     project+: {
-      ecleans: 'upkeep.commands:ecleans_command',
-      emerges: 'upkeep.commands:emerges_command',
-      esync: 'upkeep.commands:esync_command',
-      'rebuild-kernel': 'upkeep.commands:rebuild_kernel_command',
-      'upgrade-kernel': 'upkeep.commands:upgrade_kernel_command',
+      scripts: {
+        ecleans: 'upkeep.commands:ecleans_command',
+        emerges: 'upkeep.commands:emerges_command',
+        esync: 'upkeep.commands:esync_command',
+        'rebuild-kernel': 'upkeep.commands:rebuild_kernel_command',
+        'upgrade-kernel': 'upkeep.commands:upgrade_kernel_command',
+      },
     },
     tool+: {
       poetry+: {

@@ -16,15 +16,10 @@ classifiers = [
 ]
 description = "Portage update helper commands."
 dynamic = ["dependencies", "requires-python"]
-ecleans = "upkeep.commands:ecleans_command"
-emerges = "upkeep.commands:emerges_command"
-esync = "upkeep.commands:esync_command"
 keywords = ["administration", "command line", "gentoo"]
 license = "MIT"
 name = "upkeep"
 readme = "README.md"
-rebuild-kernel = "upkeep.commands:rebuild_kernel_command"
-upgrade-kernel = "upkeep.commands:upgrade_kernel_command"
 version = "1.6.0"
 
 [[project.authors]]
@@ -35,7 +30,11 @@ name = "Andrew Udvare"
 erdantic = ["erdantic<2.0"]
 
 [project.scripts]
-upkeep = "upkeep.main:main"
+ecleans = "upkeep.commands:ecleans_command"
+emerges = "upkeep.commands:emerges_command"
+esync = "upkeep.commands:esync_command"
+rebuild-kernel = "upkeep.commands:rebuild_kernel_command"
+upgrade-kernel = "upkeep.commands:upgrade_kernel_command"
 
 [project.urls]
 Issues = "https://github.com/Tatsh/upkeep/issues"
@@ -105,7 +104,7 @@ optional = true
 commitizen = "^4.5.0"
 djlint = "^1.36.4"
 mypy = ">=1.12,<1.16"
-ruff = "^0.11.5"
+ruff = "^0.11.6"
 yapf = "^0.43.0"
 
 [tool.poetry.group.docs]
