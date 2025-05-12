@@ -2,6 +2,7 @@ autodoc
 automodule
 bdeps
 bootctl
+bsky
 codeowners
 commitizen
 conftest
