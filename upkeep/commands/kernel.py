@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
 
-def kernel_command(func: Callable[[int | None], None]) -> click.BaseCommand:
+def kernel_command(func: Callable[[int | None], object]) -> click.Command:
     """
     CLI entry point for the ``upgrade-kernel`` and ``rebuild-kernel`` commands.
 
@@ -36,7 +36,7 @@ def kernel_command(func: Callable[[int | None], None]) -> click.BaseCommand:
     @umask(new_umask=0o022)
     def ret(number_of_jobs: int = 0) -> None:
         try:
-            return func(number_of_jobs)
+            func(number_of_jobs)
         except KernelError as e:
             click.echo(f'Kernel configuration error: {str(e) or "unknown"}', err=True)
             raise click.Abort from e
