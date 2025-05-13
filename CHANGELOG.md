@@ -8,6 +8,10 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Removed
+
+- `esync` command. Use `emerge --sync`.
+
 ## [1.6.0]
 
 ### Added

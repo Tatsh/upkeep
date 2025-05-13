@@ -3,7 +3,7 @@ Description=Portage syncer
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/esync
+ExecStart=/usr/bin/emerge --sync
 
 [Install]
 WantedBy=multi-user.target

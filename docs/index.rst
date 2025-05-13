@@ -5,7 +5,6 @@ Upkeep
 
   .. include:: ecleans.rst
   .. include:: emerges.rst
-  .. include:: esync.rst
   .. include:: rebuild-kernel.rst
   .. include:: upgrade-kernel.rst
 
@@ -16,7 +15,6 @@ Upkeep
   ------------
   * :doc:`ecleans <ecleans>`
   * :doc:`emerges <emerges>`
-  * :doc:`esync <esync>`
   * :doc:`rebuild-kernel <rebuild-kernel>`
   * :doc:`upgrade-kernel <upgrade-kernel>`
 

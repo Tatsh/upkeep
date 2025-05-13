@@ -4,6 +4,7 @@
 *.libjsonnet
 *.lock
 *.log
+*.service
 *~
 .*_cache/
 .coverage

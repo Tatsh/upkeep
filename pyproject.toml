@@ -32,7 +32,6 @@ erdantic = ["erdantic<2.0"]
 [project.scripts]
 ecleans = "upkeep.commands:ecleans_command"
 emerges = "upkeep.commands:emerges_command"
-esync = "upkeep.commands:esync_command"
 rebuild-kernel = "upkeep.commands:rebuild_kernel_command"
 upgrade-kernel = "upkeep.commands:upgrade_kernel_command"
 
