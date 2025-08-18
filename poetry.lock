@@ -2453,13 +2453,13 @@ test = ["tox"]
 
 [[package]]
 name = "sphinx-immaterial"
-version = "0.13.5"
+version = "0.13.6"
 description = "Adaptation of mkdocs-material theme for the Sphinx documentation system"
 optional = false
 python-versions = ">=3.10"
 groups = ["docs"]
 files = [
-    {file = "sphinx_immaterial-0.13.5-py3-none-any.whl", hash = "sha256:b344d44bcf270b43285bcacdd44506a52da7c3ead46d263d61ce7a9105ec287c"},
+    {file = "sphinx_immaterial-0.13.6-py3-none-any.whl", hash = "sha256:4c7dce949967fa0905f71e5af22ba781f2dc9a22f2c6d4e0cef166cef099871c"},
 ]
 
 [package.dependencies]
@@ -2970,4 +2970,4 @@ erdantic = ["erdantic"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<3.14"
-content-hash = "6426639a4131a5c75eb82d31afecfd3d6cfa7207f537fc0a795d2d56d9ddf18d"
+content-hash = "a5c66aeb6e0e0e0142fce95eb6071ceecf452896e0115360b9fc3ff2b9dbc22d"
