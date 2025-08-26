@@ -92,7 +92,7 @@ include = ["man", "systemd"]
 [tool.poetry.dependencies]
 click = "^8.2.1"
 python = ">=3.10,<3.14"
-typing-extensions = "^4.14.1"
+typing-extensions = "^4.15.0"
 
 [tool.poetry.group]
 
