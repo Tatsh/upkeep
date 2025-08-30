@@ -37,4 +37,5 @@ and this project adheres to
 - `ecleans` no longer ignores exit codes from the commands it executes.
 - `upkeep.utils.rebuild_kernel` and `upgrade_kernel` functions raise more specific exceptions.
 
-[unreleased]: https://github.com/Tatsh/upkeep/-/compare/v1.6.0...HEAD
+[unreleased]: https://github.com/Tatsh/upkeep/compare/v1.6.1...HEAD
+[1.6.0]: https://github.com/Tatsh/upkeep/compare/v1.5.0...v1.6.0
