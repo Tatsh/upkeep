@@ -103,7 +103,7 @@ optional = true
 commitizen = "^4.8.4"
 djlint = "^1.36.4"
 mypy = "^1.17.1"
-ruff = "^0.12.12"
+ruff = "^0.13.0"
 yapf = "^0.43.0"
 
 [tool.poetry.group.docs]
