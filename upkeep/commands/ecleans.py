@@ -4,6 +4,7 @@ from __future__ import annotations
 from pathlib import Path
 import subprocess as sp
 
+from bascom import setup_logging
 from upkeep.decorators import umask
 from upkeep.utils import CommandRunner
 import click
@@ -16,8 +17,9 @@ ECLEANS_COMMANDS = (
 
 
 @click.command('ecleans')
+@click.option('-d', '--debug', is_flag=True, help='Enable debug logging.')
 @umask(new_umask=0o022)
-def ecleans() -> None:
+def ecleans(*, debug: bool = False) -> None:
     """
     Run the following clean up commands:
 
@@ -27,6 +29,7 @@ def ecleans() -> None:
     - ``eclean-dist --deep``
     - ``rm -fR /var/tmp/portage/*``
     """  # noqa: D400, DOC501
+    setup_logging(debug=debug, loggers={'upkeep': {'handlers': ('console',), 'propagate': False}})
     try:
         for command in ECLEANS_COMMANDS:
             CommandRunner.check_call(command)

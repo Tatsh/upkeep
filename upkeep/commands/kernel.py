@@ -4,6 +4,7 @@ from __future__ import annotations
 from multiprocessing import cpu_count
 from typing import TYPE_CHECKING
 
+from bascom import setup_logging
 from upkeep.decorators import umask
 from upkeep.exceptions import KernelError
 from upkeep.utils.kernel import rebuild_kernel, upgrade_kernel
@@ -28,13 +29,19 @@ def kernel_command(func: Callable[[int | None], object]) -> click.Command:
         Callable that takes no parameters and returns ``None``.
     """
     @click.command(func.__name__)
+    @click.option('-d', '--debug', is_flag=True, help='Enable debug logging.')
     @click.option('-j',
                   '--number-of-jobs',
                   type=int,
                   default=cpu_count() + 1,
-                  help='Number of tasks to run simultaneously')
+                  help='Number of tasks to run simultaneously.')
     @umask(new_umask=0o022)
-    def ret(number_of_jobs: int = 0) -> None:
+    def ret(number_of_jobs: int = 0, *, debug: bool = False) -> None:
+        setup_logging(debug=debug,
+                      loggers={'upkeep': {
+                          'handlers': ('console',),
+                          'propagate': False
+                      }})
         try:
             func(number_of_jobs)
         except KernelError as e:

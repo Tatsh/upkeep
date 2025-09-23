@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import subprocess as sp
 
+from bascom import setup_logging
 from upkeep.constants import DEFAULT_USER_CONFIG
 from upkeep.decorators import umask
 from upkeep.utils import CommandRunner
@@ -13,18 +14,18 @@ import click
 @click.command('emerges')
 @click.option('--fatal-upgrade-kernel',
               is_flag=True,
-              help='Exit with status > 0 if kernel upgrade cannot be done')
-@click.option('-D', '--no-daemon-reexec', is_flag=True, help='Do not run daemon-reexec (systemd)')
-@click.option('-L', '--no-live-rebuild', is_flag=True, help='Skip the live-rebuild step')
-@click.option('-P', '--no-preserved-rebuild', is_flag=True, help='Skip the preserved-rebuild step')
-@click.option('-U', '--no-upgrade-kernel', is_flag=True, help='Skip upgrading the kernel')
-@click.option('-a', '--ask', is_flag=True, help='Pass --ask to emerge')
+              help='Exit with status > 0 if kernel upgrade cannot be done.')
+@click.option('-D', '--no-daemon-reexec', is_flag=True, help='Do not run daemon-reexec (systemd).')
+@click.option('-L', '--no-live-rebuild', is_flag=True, help='Skip the live-rebuild step.')
+@click.option('-P', '--no-preserved-rebuild', is_flag=True, help='Skip the preserved-rebuild step.')
+@click.option('-U', '--no-upgrade-kernel', is_flag=True, help='Skip upgrading the kernel.')
+@click.option('-a', '--ask', is_flag=True, help='Pass --ask to emerge.')
 @click.option('-c',
               '--config',
               default=DEFAULT_USER_CONFIG,
               help='Override configuration file path.')
 @click.option('-e', '--exclude', metavar='ATOM')
-@click.option('-v', '--verbose', is_flag=True, help='Pass --verbose to emerge and enable logging')
+@click.option('-v', '--verbose', is_flag=True, help='Pass --verbose to emerge and enable logging.')
 @umask(new_umask=0o022)
 def emerges(
         config: str | None = None,  # noqa: ARG001
@@ -60,6 +61,7 @@ def emerges(
     --------
     upgrade_kernel
     """  # noqa: D400, DOC501
+    setup_logging(debug=verbose, loggers={'upkeep': {'handlers': ('console',), 'propagate': False}})
     live_rebuild = not no_live_rebuild
     preserved_rebuild = not no_preserved_rebuild
     daemon_reexec = not no_daemon_reexec
