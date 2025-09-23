@@ -1,12 +1,12 @@
+"""Module providing the ``ecleans`` command to perform various system clean-up tasks."""
 from __future__ import annotations
 
 from pathlib import Path
 import subprocess as sp
 
-import click
-
 from upkeep.decorators import umask
 from upkeep.utils import CommandRunner
+import click
 
 __all__ = ('ecleans',)
 ECLEANS_COMMANDS = (
@@ -26,15 +26,9 @@ def ecleans() -> None:
     - ``revdep-rebuild --quiet` -- --usepkg=n``
     - ``eclean-dist --deep``
     - ``rm -fR /var/tmp/portage/*``
-
-    Returns
-    -------
-    int
-        Exit code of the last command.
-    """  # noqa: D400
-    runner = CommandRunner()
+    """  # noqa: D400, DOC501
     try:
         for command in ECLEANS_COMMANDS:
-            runner.check_call(command)
+            CommandRunner.check_call(command)
     except sp.CalledProcessError as e:
         raise click.Abort from e

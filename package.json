@@ -1,47 +1,29 @@
 {
   "contributors": ["Andrew Udvare <audvare@gmail.com>"],
   "cspell": {
+    "cache": {
+      "useCache": true
+    },
     "dictionaryDefinitions": [
       {
         "name": "main",
         "path": ".vscode/dictionary.txt"
       }
     ],
+    "enableFileTypes": {
+      "*": true
+    },
     "enableGlobDot": true,
-    "enabledLanguageIds": [
-      "git-commit",
-      "ignore",
-      "jinja",
-      "json",
-      "jsonc",
-      "markdown",
-      "plaintext",
-      "python",
-      "restructuredtext",
-      "text",
-      "toml",
-      "yaml",
-      "yml"
-    ],
+    "files": ["*"],
     "ignorePaths": [
       "*.1",
       "*.har",
-      "*.log",
-      ".*_cache/**",
-      ".coverage",
-      ".directory",
-      ".doctrees",
-      ".git",
-      ".vscode/extensions.json",
+      "*.lock",
+      ".git/**",
       ".yarn/**/*.cjs",
-      "__pycache__",
-      "_build/**",
-      "build/**",
+      ".vscode/extensions.json",
       "dist/**",
-      "docs/_build/**",
-      "htmlcov/**",
-      "man/**",
-      "node_modules/**"
+      "man/**"
     ],
     "language": "en-GB",
     "languageSettings": [
@@ -49,8 +31,10 @@
         "dictionaries": ["main"],
         "languageId": "*"
       }
-    ]
+    ],
+    "useGitignore": true
   },
+  "description": "Portage update helper commands.",
   "devDependencies": {
     "@prettier/plugin-xml": "^3.4.2",
     "cspell": "^9.2.1",
@@ -62,6 +46,7 @@
     "pyright": "^1.1.405",
     "yarn-audit-fix": "^10.1.1"
   },
+  "files": ["LICENSE.txt", "README.md", "man/upkeep.1"],
   "homepage": "https://tatsh.github.io/upkeep/",
   "keywords": ["administration", "command line", "gentoo"],
   "license": "MIT",
@@ -73,12 +58,13 @@
       "default": true,
       "line-length": {
         "code_blocks": false,
-        "line_length": 100
+        "line_length": 100,
+        "tables": false
       }
     }
   },
   "name": "upkeep",
-  "packageManager": "yarn@4.9.0",
+  "packageManager": "yarn@4.10.2",
   "prettier": {
     "endOfLine": "lf",
     "iniSpaceAroundEquals": true,

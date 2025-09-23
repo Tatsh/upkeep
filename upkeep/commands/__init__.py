@@ -1,3 +1,4 @@
+"""Module providing command implementations for system upkeep tasks."""
 from __future__ import annotations
 
 from .ecleans import ecleans as ecleans_command

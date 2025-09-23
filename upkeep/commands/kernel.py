@@ -1,13 +1,13 @@
+"""Module providing the ``upgrade-kernel`` and ``rebuild-kernel`` commands."""
 from __future__ import annotations
 
 from multiprocessing import cpu_count
 from typing import TYPE_CHECKING
 
-import click
-
 from upkeep.decorators import umask
 from upkeep.exceptions import KernelError
 from upkeep.utils.kernel import rebuild_kernel, upgrade_kernel
+import click
 
 if TYPE_CHECKING:
     from collections.abc import Callable

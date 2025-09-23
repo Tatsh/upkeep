@@ -18,7 +18,7 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
         def __init__(self, s: str) -> None:
             self.s = s
 
-        def write_bytes(self, _content: str, /) -> int:
+        def write_bytes(self, _content: str, /) -> int:  # noqa: PLR6301
             return 0
 
         def is_file(self) -> bool:

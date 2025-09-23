@@ -1,3 +1,4 @@
+"""Kernel-related utilities."""
 from __future__ import annotations
 
 from multiprocessing import cpu_count
@@ -65,15 +66,14 @@ def rebuild_kernel(num_cpus: int | None = None) -> None:
             Path('.config').write_bytes(gz.read())
     if not dot_config_exists:
         raise KernelConfigMissing
-    runner = CommandRunner()
     logger.info('Running: make oldconfig')
-    runner.check_call(('make', 'oldconfig'))
+    CommandRunner.check_call(('make', 'oldconfig'))
     commands: tuple[tuple[str, ...], ...] = (('make', f'-j{num_cpus}'), ('make', 'modules_install'),
                                              ('emerge', '--keep-going', '@module-rebuild',
                                               '@x11-module-rebuild'), ('make', 'install'))
     for cmd in commands:
         logger.info('Running: %s', ' '.join(quote(c) for c in cmd))
-        runner.suppress_output(cmd)
+        CommandRunner.suppress_output(cmd)
 
 
 def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) -> None:
@@ -93,12 +93,22 @@ def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) ->
         If ``True``, raises certain exceptions or returns 1. If ``False``,
         always returns 0.
 
+    Raises
+    ------
+    NoKernelToUpgradeTo
+        If there is no newer kernel to upgrade to.
+    TooManyLinesFromEselect
+        If there are too many lines in the output from ``eselect kernel list``.
+    NoValueIsUnselected
+        If no value is unselected in the output from ``eselect kernel list``.
+    KernelConfigMissing
+        If a kernel configuration cannot be found.
+
     See Also
     --------
     rebuild_kernel
     """
-    runner = CommandRunner()
-    kernel_list = runner.run(('eselect', '--colour=no', 'kernel', 'list'), stdout=sp.PIPE)
+    kernel_list = CommandRunner.run(('eselect', '--colour=no', 'kernel', 'list'), stdout=sp.PIPE)
     lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
     if not any(re.search(r'\*$', line) for line in lines):
         logger.debug('Select a kernel to upgrade to (eselect kernel set ...).')
@@ -106,8 +116,8 @@ def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) ->
             raise NoKernelToUpgradeTo
         return
     if (len([
-            s for s in runner.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
-                                  stdout=sp.PIPE).stdout.splitlines() if s
+            s for s in CommandRunner.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
+                                         stdout=sp.PIPE).stdout.splitlines() if s
     ]) > MINIMUM_ESELECT_LINES):
         logger.info('Unexpected number of lines (eselect --brief). Not updating kernel.')
         if fatal:
@@ -124,7 +134,7 @@ def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) ->
         return
     cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
     logger.debug('Running: %s', ' '.join(quote(c) for c in cmd))
-    runner.suppress_output(cmd)
+    CommandRunner.suppress_output(cmd)
     try:
         rebuild_kernel(num_cpus)
     except KernelConfigMissing:

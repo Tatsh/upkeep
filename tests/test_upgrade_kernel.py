@@ -143,7 +143,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(mocker: MockFixture,
         def write(self, _value: Any) -> None:
             pass
 
-        def readlines(self) -> list[Any]:
+        def readlines(self) -> list[Any]:  # noqa: PLR6301
             return []
 
         def __enter__(self) -> Self:
@@ -172,7 +172,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(mocker: MockFixture,
         def mkdir(self, *args: Any, **kwargs: Any) -> None:
             pass
 
-        def exists(self) -> bool:
+        def exists(self) -> bool:  # noqa: PLR6301
             return False
 
         def unlink(self) -> None:
@@ -181,7 +181,7 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(mocker: MockFixture,
         def joinpath(self, *args: Any) -> PathMock:
             return self
 
-        def is_file(self) -> bool:
+        def is_file(self) -> bool:  # noqa: PLR6301
             return True
 
         @override

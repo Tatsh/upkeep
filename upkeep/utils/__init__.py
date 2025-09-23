@@ -1,3 +1,4 @@
+"""Utility functions and classes."""
 from __future__ import annotations
 
 from functools import lru_cache
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 @lru_cache
 def minenv() -> Mapping[str, str]:
+    """Minimal environment dictionary for subprocesses."""
     env: dict[str, str] = {}
     for key in SPECIAL_ENV:
         if environ.get(key):
@@ -26,13 +28,22 @@ def minenv() -> Mapping[str, str]:
 
 
 class CommandRunner:
-    def run(self,
-            args: Sequence[str],
+    """Helper class to run commands."""
+    @staticmethod
+    def run(args: Sequence[str],
             *,
             check: bool = True,
             env: Mapping[str, str] | None = None,
             stdout: int | None = None,
             stderr: int | None = None) -> CompletedProcess[str]:
+        """
+        Run a command with logging and error handling.
+
+        Raises
+        ------
+        subprocess.CalledProcessError
+            If the command returns a non-zero exit code and `check` is `True`.
+        """
         try:
             return sp.run(args,
                           check=check,
@@ -47,16 +58,19 @@ class CommandRunner:
             logger.exception('STDERR: %s', cast('str', e.stderr))
             raise
 
-    def check_call(self,
-                   args: Sequence[str],
+    @staticmethod
+    def check_call(args: Sequence[str],
                    env: Mapping[str, str] | None = None,
                    stdout: int | None = None,
                    stderr: int | None = None) -> int:
-        return self.run(args, check=True, env=env, stdout=stdout, stderr=stderr).returncode
+        """Run a command and return its exit code."""
+        return CommandRunner.run(args, check=True, env=env, stdout=stdout, stderr=stderr).returncode
 
-    def suppress_output(self,
-                        args: Sequence[str],
+    @staticmethod
+    def suppress_output(args: Sequence[str],
                         env: Mapping[str, str] | None = None,
                         *,
                         check: bool = True) -> int:
-        return self.run(args, stdout=sp.DEVNULL, stderr=sp.DEVNULL, env=env, check=check).returncode
+        """Run a command, suppressing its output."""
+        return CommandRunner.run(args, stdout=sp.DEVNULL, stderr=sp.DEVNULL, env=env,
+                                 check=check).returncode

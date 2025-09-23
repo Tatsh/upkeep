@@ -1,13 +1,13 @@
+"""Module providing the ``emerges`` command to update the system."""
 from __future__ import annotations
 
 import subprocess as sp
-
-import click
 
 from upkeep.constants import DEFAULT_USER_CONFIG
 from upkeep.decorators import umask
 from upkeep.utils import CommandRunner
 from upkeep.utils.kernel import upgrade_kernel
+import click
 
 
 @click.command('emerges')
@@ -26,16 +26,17 @@ from upkeep.utils.kernel import upgrade_kernel
 @click.option('-e', '--exclude', metavar='ATOM')
 @click.option('-v', '--verbose', is_flag=True, help='Pass --verbose to emerge and enable logging')
 @umask(new_umask=0o022)
-def emerges(config: str | None = None,
-            exclude: str | None = None,
-            *,
-            ask: bool = False,
-            no_live_rebuild: bool = False,
-            no_preserved_rebuild: bool = False,
-            no_daemon_reexec: bool = False,
-            no_upgrade_kernel: bool = False,
-            fatal_upgrade_kernel: bool = False,
-            verbose: bool = False) -> None:
+def emerges(
+        config: str | None = None,  # noqa: ARG001
+        exclude: str | None = None,
+        *,
+        ask: bool = False,
+        no_live_rebuild: bool = False,
+        no_preserved_rebuild: bool = False,
+        no_daemon_reexec: bool = False,
+        no_upgrade_kernel: bool = False,
+        fatal_upgrade_kernel: bool = False,
+        verbose: bool = False) -> None:
     """
     Run the following steps:
 
@@ -58,7 +59,7 @@ def emerges(config: str | None = None,
     See Also
     --------
     upgrade_kernel
-    """  # noqa: D400
+    """  # noqa: D400, DOC501
     live_rebuild = not no_live_rebuild
     preserved_rebuild = not no_preserved_rebuild
     daemon_reexec = not no_daemon_reexec
@@ -66,17 +67,17 @@ def emerges(config: str | None = None,
     ask_arg = ['--ask'] if ask else []
     verbose_arg = ['--verbose'] if verbose else ['--quiet']
     exclude_arg = [f'--exclude={x}' for x in exclude or []]
-    runner = CommandRunner()
     try:
-        runner.check_call(['emerge', '--oneshot', '--update', 'portage', *verbose_arg])
-        runner.check_call([
+        CommandRunner.check_call(['emerge', '--oneshot', '--update', 'portage', *verbose_arg])
+        CommandRunner.check_call([
             'emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world',
             *ask_arg, *verbose_arg, *exclude_arg
         ])
         if live_rebuild:
-            runner.check_call(('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'))
+            CommandRunner.check_call(
+                ('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'))
         if preserved_rebuild:
-            runner.check_call((
+            CommandRunner.check_call((
                 'emerge',
                 '--keep-going',
                 '--quiet',
@@ -88,8 +89,8 @@ def emerges(config: str | None = None,
         raise click.Abort from e
     if daemon_reexec:
         try:
-            runner.suppress_output(('bash', '-c', 'command -v systemctl'))
-            runner.check_call(('systemctl', 'daemon-reexec'))
+            CommandRunner.suppress_output(('bash', '-c', 'command -v systemctl'))
+            CommandRunner.check_call(('systemctl', 'daemon-reexec'))
         except sp.CalledProcessError:
             pass
     if up_kernel:
