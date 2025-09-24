@@ -6,6 +6,7 @@ local utils = import 'utils.libjsonnet';
   project_name: 'upkeep',
   version: '1.6.1',
   want_main: true,
+  has_multiple_entry_points: true,
   copilot+: {
     intro: 'Upkeep is a set of commands to help with maintaining a Gentoo system.',
   },
