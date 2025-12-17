@@ -1,6 +1,6 @@
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.system.image }}
     steps:
       - uses: 'actions/checkout@v6'
       - name: 'Install Poetry'
@@ -80,8 +80,8 @@ jobs:
               fi
               cp generic.svg "recipe/${script_name}.svg"
               echo "Building executable for '${script_name}'..."
-              poetry run python -m python_appimage -v build app -p 3.13 recipe
-              mv "${script_name}-x86_64.AppImage" "dist/${script_name}-x86_64.AppImage"
+              poetry run python -m python_appimage -v build app -l "manylinux2014_${{ matrix.system.arch }}" -p 3.13 recipe
+              mv "${script_name}-${{ matrix.system.arch }}.AppImage" "dist/${script_name}-${{ matrix.system.arch }}.AppImage"
           done < <(tomlq -r '.project.scripts|to_entries[]|"\(.key) \(.value|split(":")|join(" "))"' pyproject.toml)
         shell: 'bash'
       - name: 'Test binary'
@@ -100,15 +100,18 @@ jobs:
         uses: 'actions/upload-artifact@v6'
         with:
           if-no-files-found: error
-          name: upkeep-binaries-linux-x86_64
+          name: upkeep-binaries-linux-${{ matrix.system.arch }}
           path: |
             dist/*
-      - if: github.ref_type == 'tag'
-        name: 'Zip files'
+      - name: 'Zip files'
         run: |
           rm -fR _out
           mkdir _out
           zip -j _out/upkeep-${{ github.ref_name }}.zip dist/*
+      - name: 'Attest'
+        uses: 'actions/attest-build-provenance@v3'
+        with:
+          subject-path: '_out/*.zip'
       - if: github.ref_type == 'tag'
         name: Upload package
         uses: softprops/action-gh-release@v2
@@ -116,15 +119,19 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             _out/*.zip
+    strategy:
+      matrix:
+        system:
+          - { arch: aarch64, image: ubuntu-24.04-arm }
+          - { arch: x86_64, image: ubuntu-latest }
 name: 'AppImage'
 'on':
-  pull_request:
-    branches:
-      - 'master'
   push:
     branches:
       - 'master'
     tags:
       - 'v*.*.*'
 permissions:
-  contents: 'read'
+  attestations: 'write'
+  contents: 'write'
+  id-token: 'write'
