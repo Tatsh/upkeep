@@ -13,6 +13,7 @@ colorlog
 commitizen
 conftest
 coveragerc
+coverallsapp
 dataclasses
 datatable
 datatables
@@ -48,6 +49,7 @@ kernelinstall
 kver
 launchable
 lextudio
+libera
 libjsonnet
 linters
 makeopts
@@ -62,6 +64,7 @@ numpydoc
 oldconfig
 onefile
 oneshot
+pavelzw
 pipx
 proc
 prodvers
@@ -70,6 +73,7 @@ pydantic
 pydocstyle
 pyinstaller
 pylint
+pypa
 pypi
 pyproject
 pytest

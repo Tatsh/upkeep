@@ -103,12 +103,21 @@ jobs:
           name: upkeep-binaries-linux-x86_64
           path: |
             dist/*
+      - name: 'Attest'
+        uses: 'actions/attest-build-provenance@v3'
+        with:
+          subject-path: 'dist/*'
       - if: github.ref_type == 'tag'
         name: 'Zip files'
         run: |
           rm -fR _out
           mkdir _out
           zip -j _out/upkeep-${{ github.ref_name }}.zip dist/*
+      - if: github.ref_type == 'tag'
+        name: 'Attest'
+        uses: 'actions/attest-build-provenance@v3'
+        with:
+          subject-path: '_out/*.zip'
       - if: github.ref_type == 'tag'
         name: Upload package
         uses: softprops/action-gh-release@v2
@@ -127,4 +136,6 @@ name: 'AppImage'
     tags:
       - 'v*.*.*'
 permissions:
-  contents: 'read'
+  attestations: 'write'
+  contents: 'write'
+  id-token: 'write'
