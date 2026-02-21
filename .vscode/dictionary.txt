@@ -8,7 +8,6 @@ bascom
 bdeps
 bootctl
 bsky
-codeowners
 colorlog
 commitizen
 conftest
@@ -35,6 +34,7 @@ fontawesome
 foxundermoon
 genindex
 getbinpkg
+getline
 globaltoc
 htmlcov
 installkernel
@@ -85,6 +85,8 @@ sbsigntools
 schemafile
 sdist
 shellformat
+snapcore
+snapcraft
 softprops
 sphinxcontrib
 syncer

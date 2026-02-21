@@ -17,7 +17,7 @@ def test_emerges_keyboard_interrupt(sp_mocker: SubprocessMocker, mocker: MockFix
     sp_mocker.add_output4(['emerge', '--oneshot', '--update', 'portage', '--quiet'],
                           raise_=True,
                           check=True)
-    mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
     assert CliRunner().invoke(emerges).exit_code != 0
 
 
@@ -36,7 +36,7 @@ def test_emerges_live_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixture) 
                           stderr=sp.DEVNULL)
     sp_mocker.add_output4(['systemctl', 'daemon-reexec'], check=True)
     sp_mocker.add_output3(['eselect', '--colour=no', 'kernel', 'list'], stdout_output='')
-    mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
     assert CliRunner().invoke(emerges).exit_code == 0
     assert ('emerge --keep-going --quiet --usepkg=n @live-rebuild') in sp_mocker.history
 
@@ -57,7 +57,7 @@ def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixt
                           stdout=sp.DEVNULL)
     sp_mocker.add_output4(('systemctl', 'daemon-reexec'), check=True)
     sp_mocker.add_output3(['eselect', '--colour=no', 'kernel', 'list'], stdout_output='')
-    mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
     assert CliRunner().invoke(emerges).exit_code == 0
     assert ('emerge --keep-going --quiet --usepkg=n @preserved-rebuild') in sp_mocker.history
 
@@ -78,7 +78,7 @@ def test_emerges_daemon_reexec(sp_mocker: SubprocessMocker, mocker: MockFixture)
                           stdout=sp.DEVNULL)
     sp_mocker.add_output4(('systemctl', 'daemon-reexec'), check=True)
     sp_mocker.add_output3(['eselect', '--colour=no', 'kernel', 'list'], stdout_output='')
-    mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
     assert CliRunner().invoke(emerges).exit_code == 0
     assert 'systemctl daemon-reexec' in sp_mocker.history
 
@@ -99,7 +99,7 @@ def test_emerges_daemon_reexec_no_systemd(sp_mocker: SubprocessMocker, mocker: M
                           stdout=sp.DEVNULL,
                           stderr=sp.DEVNULL)
     sp_mocker.add_output3(['eselect', '--colour=no', 'kernel', 'list'], stdout_output='')
-    mocker.patch('upkeep.utils.sp.run', new=sp_mocker.get_output)
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
     result = CliRunner().invoke(emerges)
     assert result.exit_code == 0
     assert 'systemctl daemon-reexec' not in sp_mocker.history
