@@ -109,7 +109,7 @@ jobs:
           mkdir _out
           zip -j _out/upkeep-${{ github.ref_name }}.zip dist/*
       - name: 'Attest'
-        uses: 'actions/attest-build-provenance@v3'
+        uses: 'actions/attest-build-provenance@v4'
         with:
           subject-path: '_out/*.zip'
       - if: github.ref_type == 'tag'
