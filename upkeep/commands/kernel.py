@@ -20,15 +20,15 @@ def kernel_command(func: Callable[[int | None], object]) -> click.Command:
 
     Parameters
     ----------
-    func : callable
+    func : Callable[[int | None], object]
         A callable that accepts an optional integer representing number of CPUs.
 
     Returns
     -------
-    click.BaseCommand
+    click.Command
         Callable that takes no parameters and returns ``None``.
     """
-    @click.command(func.__name__)
+    @click.command(func.__name__)  # ty: ignore[unresolved-attribute]
     @click.option('-d', '--debug', is_flag=True, help='Enable debug logging.')
     @click.option('-j',
                   '--number-of-jobs',
@@ -57,7 +57,9 @@ Entry point for the ``upgrade-kernel`` command.
 
 See Also
 --------
-upgrade_kernel
+:py:func:`~upkeep.utils.kernel.upgrade_kernel`
+
+:meta hide-value:
 """
 rebuild_kernel_command = kernel_command(rebuild_kernel)
 """
@@ -65,5 +67,7 @@ Entry point for the ``rebuild-kernel`` command.
 
 See Also
 --------
-rebuild_kernel
+:py:func:`~upkeep.utils.kernel.rebuild_kernel`
+
+:meta hide-value:
 """

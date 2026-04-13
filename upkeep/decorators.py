@@ -15,7 +15,21 @@ T = TypeVar('T')
 
 
 def umask(new_umask: int, *, restore: bool = False) -> Callable[[Callable[P, T]], Callable[P, T]]:
-    """Set the umask before calling the decorated function."""
+    """
+    Set the umask before calling the decorated function.
+
+    Parameters
+    ----------
+    new_umask : int
+        The umask value to set before calling the decorated function.
+    restore : bool
+        Whether to restore the original umask after the function completes.
+
+    Returns
+    -------
+    Callable[[Callable[P, T]], Callable[P, T]]
+        A decorator that sets the umask before calling the decorated function.
+    """
     def decorator_umask(func: Callable[P, T]) -> Callable[P, T]:
         @wraps(func)
         def inner(*args: P.args, **kwargs: P.kwargs) -> T:

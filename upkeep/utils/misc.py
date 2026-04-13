@@ -1,7 +1,7 @@
 """Utility functions and classes."""
 from __future__ import annotations
 
-from functools import lru_cache
+from functools import cache
 from os import environ
 from shlex import quote
 from subprocess import CompletedProcess
@@ -17,9 +17,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-@lru_cache
+@cache
 def minenv() -> Mapping[str, str]:
-    """Minimal environment dictionary for subprocesses."""
+    """
+    Minimal environment dictionary for subprocesses.
+
+    Returns
+    -------
+    Mapping[str, str]
+        A dictionary containing only the environment variables listed in
+        :py:data:`~upkeep.constants.SPECIAL_ENV`.
+    """
     env: dict[str, str] = {}
     for key in SPECIAL_ENV:
         if environ.get(key):
@@ -39,10 +47,28 @@ class CommandRunner:
         """
         Run a command with logging and error handling.
 
+        Parameters
+        ----------
+        args : Sequence[str]
+            The command and its arguments.
+        check : bool
+            Whether to raise on non-zero exit codes.
+        env : Mapping[str, str] | None
+            Environment variables for the subprocess.
+        stdout : int | None
+            File descriptor for standard output.
+        stderr : int | None
+            File descriptor for standard error.
+
+        Returns
+        -------
+        CompletedProcess[str]
+            The result of the completed process.
+
         Raises
         ------
         subprocess.CalledProcessError
-            If the command returns a non-zero exit code and `check` is `True`.
+            If the command returns a non-zero exit code and ``check`` is ``True``.
         """
         try:
             return sp.run(args,
@@ -63,7 +89,25 @@ class CommandRunner:
                    env: Mapping[str, str] | None = None,
                    stdout: int | None = None,
                    stderr: int | None = None) -> int:
-        """Run a command and return its exit code."""
+        """
+        Run a command and return its exit code.
+
+        Parameters
+        ----------
+        args : Sequence[str]
+            The command and its arguments.
+        env : Mapping[str, str] | None
+            Environment variables for the subprocess.
+        stdout : int | None
+            File descriptor for standard output.
+        stderr : int | None
+            File descriptor for standard error.
+
+        Returns
+        -------
+        int
+            The exit code of the completed process.
+        """
         return CommandRunner.run(args, check=True, env=env, stdout=stdout, stderr=stderr).returncode
 
     @staticmethod
@@ -71,6 +115,22 @@ class CommandRunner:
                         env: Mapping[str, str] | None = None,
                         *,
                         check: bool = True) -> int:
-        """Run a command, suppressing its output."""
+        """
+        Run a command, suppressing its output.
+
+        Parameters
+        ----------
+        args : Sequence[str]
+            The command and its arguments.
+        env : Mapping[str, str] | None
+            Environment variables for the subprocess.
+        check : bool
+            Whether to raise on non-zero exit codes.
+
+        Returns
+        -------
+        int
+            The exit code of the completed process.
+        """
         return CommandRunner.run(args, stdout=sp.DEVNULL, stderr=sp.DEVNULL, env=env,
                                  check=check).returncode
