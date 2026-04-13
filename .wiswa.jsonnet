@@ -1,16 +1,16 @@
 local utils = import 'utils.libjsonnet';
 
 {
+  uses_user_defaults: true,
   description: 'Portage update helper commands.',
   keywords: ['administration', 'command line', 'gentoo'],
   project_name: 'upkeep',
   version: '1.6.1',
   want_main: true,
+  want_flatpak: true,
+  publishing+: { flathub: 'sh.tat.upkeep' },
   want_snap: false,
   has_multiple_entry_points: true,
-  copilot+: {
-    intro: 'Upkeep is a set of commands to help with maintaining a Gentoo system.',
-  },
   prettierignore+: ['*.service'],
   security_policy_supported_versions: { '1.6.x': ':white_check_mark:' },
   pyproject+: {
