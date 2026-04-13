@@ -1,8 +1,6 @@
 anchore
 Ångström
-appdir
 appimage
-appinfo
 asyncio
 autodoc
 automodule
@@ -39,7 +37,6 @@ eselect
 esync
 excinfo
 filevers
-flathub
 foxundermoon
 functools
 genindex
@@ -58,14 +55,12 @@ kernelinstall
 kver
 kwargs
 lastexitcode
-launchable
 lextudio
 libera
 libjsonnet
 libsonnet
 linters
 makeopts
-manylinux
 minenv
 mktemp
 modindex

@@ -12,7 +12,7 @@ jobs:
           sha="$COMMIT_SHA"
           for i in $(seq 1 30); do
             all_done=true
-            for workflow in AppImage Flatpak Prettier PyInstaller QA Spelling Tests markdownlint; do
+            for workflow in Prettier PyInstaller QA Spelling Tests markdownlint; do
               status=$(gh run list --workflow "$workflow" --commit "$sha" --json conclusion --jq '.[0].conclusion')
               if [[ "$status" == 'failure' || "$status" == 'cancelled' ]]; then
                 echo "::error::Workflow '$workflow' ${status}."

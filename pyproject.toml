@@ -83,7 +83,6 @@ version_files = [
   "docs/index.rst",
   "man/upkeep.1",
   "package.json",
-  "sh.tat.upkeep.yml",
   "upkeep/__init__.py",
 ]
 version_provider = "pep621"

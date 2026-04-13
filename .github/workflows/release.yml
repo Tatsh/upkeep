@@ -17,7 +17,7 @@ jobs:
           tag="$HEAD_BRANCH"
           sha="$HEAD_SHA"
           all_success=true
-          for workflow in AppImage Flatpak Prettier Publish PyInstaller QA Spelling Tests markdownlint; do
+          for workflow in Prettier Publish PyInstaller QA Spelling Tests markdownlint; do
             status=$(gh run list --workflow "$workflow" --commit "$sha" --json conclusion --jq '.[0].conclusion')
             if [[ "$status" == 'failure' || "$status" == 'cancelled' ]]; then
               echo "::error::Workflow '$workflow' ${status}."
@@ -45,8 +45,6 @@ name: 'Release'
     types:
       - 'completed'
     workflows:
-      - 'AppImage'
-      - 'Flatpak'
       - 'Prettier'
       - 'Publish'
       - 'PyInstaller'
