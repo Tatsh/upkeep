@@ -79,13 +79,8 @@ def emerges(
             CommandRunner.check_call(
                 ('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'))
         if preserved_rebuild:
-            CommandRunner.check_call((
-                'emerge',
-                '--keep-going',
-                '--quiet',
-                '--usepkg=n',
-                '@preserved-rebuild',
-            ))
+            CommandRunner.check_call(
+                ('emerge', '--keep-going', '--quiet', '--usepkg=n', '@preserved-rebuild'))
     except sp.CalledProcessError as e:
         click.echo(str(e), err=True)
         raise click.Abort from e
