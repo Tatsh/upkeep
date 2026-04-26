@@ -74,7 +74,6 @@ norecursedirs
 notarytool
 npmjs
 numpy
-numpydoc
 oldconfig
 onefile
 oneline
