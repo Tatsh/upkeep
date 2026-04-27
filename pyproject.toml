@@ -51,7 +51,7 @@ license = "MIT"
 name = "upkeep"
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
-version = "1.6.1"
+version = "1.7.0"
 
 [[project.authors]]
 email = "audvare@gmail.com"

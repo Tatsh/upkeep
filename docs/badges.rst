@@ -16,8 +16,8 @@
       :target: https://github.com/Tatsh/upkeep/blob/master/LICENSE.txt
       :alt: License
 
-   .. image:: https://img.shields.io/github/commits-since/Tatsh/upkeep/v1.6.1/master
-      :target: https://github.com/Tatsh/upkeep/compare/v1.6.1...master
+   .. image:: https://img.shields.io/github/commits-since/Tatsh/upkeep/v1.7.0/master
+      :target: https://github.com/Tatsh/upkeep/compare/v1.7.0...master
       :alt: GitHub commits since latest release (by SemVer including pre-releases)
 
    .. image:: https://github.com/Tatsh/upkeep/actions/workflows/codeql.yml/badge.svg

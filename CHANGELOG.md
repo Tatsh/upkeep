@@ -8,6 +8,12 @@ and this project adheres to
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-04-26
+
+### Added
+
+- Logging output to commands.
+
 ### Removed
 
 - `esync` command. Use `emerge --sync`.
@@ -37,5 +43,6 @@ and this project adheres to
 - `ecleans` no longer ignores exit codes from the commands it executes.
 - `upkeep.utils.rebuild_kernel` and `upgrade_kernel` functions raise more specific exceptions.
 
-[unreleased]: https://github.com/Tatsh/upkeep/compare/v1.6.1...HEAD
+[unreleased]: https://github.com/Tatsh/upkeep/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/Tatsh/upkeep/compare/v1.6.1...v1.7.0
 [1.6.0]: https://github.com/Tatsh/upkeep/compare/v1.5.0...v1.6.0
