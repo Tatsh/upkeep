@@ -11,6 +11,7 @@ local utils = import 'utils.libjsonnet';
   want_flatpak: false,
   want_snap: false,
   has_multiple_entry_points: true,
+  supported_platforms: ['linux'],
   prettierignore+: ['*.service', '*.timer'],
   security_policy_supported_versions: { '1.6.x': ':white_check_mark:' },
   pyproject+: {

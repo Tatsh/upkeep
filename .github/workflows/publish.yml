@@ -12,7 +12,7 @@ jobs:
           sha="$COMMIT_SHA"
           for i in $(seq 1 30); do
             all_done=true
-            for workflow in Prettier PyInstaller QA Spelling Tests markdownlint; do
+            for workflow in Prettier QA Spelling Tests markdownlint; do
               run=$(gh run list --workflow "$workflow" --commit "$sha" --json status,conclusion --jq '.[0]')
               if [[ -z "$run" || "$run" == 'null' ]]; then
                 echo "Workflow '$workflow' did not run for this commit; treating as optional."
