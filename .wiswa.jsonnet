@@ -13,7 +13,7 @@ local utils = import 'utils.libjsonnet';
   has_multiple_entry_points: true,
   supported_platforms: ['linux'],
   prettierignore+: ['*.service', '*.timer'],
-  security_policy_supported_versions: { '1.6.x': ':white_check_mark:' },
+  security_policy_supported_versions: { '1.7.x': ':white_check_mark:' },
   pyproject+: {
     project+: {
       scripts: {
