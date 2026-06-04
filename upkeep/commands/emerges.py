@@ -11,7 +11,7 @@ from upkeep.utils.kernel import upgrade_kernel
 import click
 
 
-@click.command('emerges')
+@click.command('emerges', context_settings={'help_option_names': ('-h', '--help')})
 @click.option('--fatal-upgrade-kernel',
               is_flag=True,
               help='Exit with status > 0 if kernel upgrade cannot be done.')
@@ -24,7 +24,7 @@ import click
               '--config',
               default=DEFAULT_USER_CONFIG,
               help='Override configuration file path.')
-@click.option('-e', '--exclude', metavar='ATOM')
+@click.option('-e', '--exclude', metavar='ATOM', help='Atom to exclude from the @world update.')
 @click.option('-v', '--verbose', is_flag=True, help='Pass --verbose to emerge and enable logging.')
 @umask(new_umask=0o022)
 def emerges(
@@ -47,19 +47,6 @@ def emerges(
     - ``emerge --usepkg=n --keep-going --quiet @preserved-rebuild``
     - ``systemctl daemon-reexec`` if applicable
     - upgrade kernel
-
-    This function understands the following CLI flags:
-
-    - ``-a`` / ``--ask``: Pass ``--ask`` to the ``emerge @world`` command
-    - ``-L`` / ``--no-live-rebuild``: Skip ``emerge @live-rebuild`` step
-    - ``-P`` / ``--no-preserved-rebuild``: Skip ``emerge @preserved-rebuild``
-      step
-    - ``-D`` / ``--no-daemon-reexec``: Skip ``systemctl daemon-reexec`` step
-    - ``-U`` / ``--no-upgrade-kernel``: Skip upgrading the kernel
-
-    See Also
-    --------
-    upgrade_kernel
     """  # noqa: D400, DOC501
     setup_logging(debug=verbose, loggers={'upkeep': {'handlers': ('console',), 'propagate': False}})
     live_rebuild = not no_live_rebuild
@@ -69,18 +56,20 @@ def emerges(
     ask_arg = ['--ask'] if ask else []
     verbose_arg = ['--verbose'] if verbose else ['--quiet']
     exclude_arg = [f'--exclude={x}' for x in exclude or []]
-    try:
-        CommandRunner.check_call(['emerge', '--oneshot', '--update', 'portage', *verbose_arg])
-        CommandRunner.check_call([
+    commands = [
+        ['emerge', '--oneshot', '--update', 'portage', *verbose_arg],
+        [
             'emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world',
             *ask_arg, *verbose_arg, *exclude_arg
-        ])
-        if live_rebuild:
-            CommandRunner.check_call(
-                ('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'))
-        if preserved_rebuild:
-            CommandRunner.check_call(
-                ('emerge', '--keep-going', '--quiet', '--usepkg=n', '@preserved-rebuild'))
+        ],
+    ]
+    if live_rebuild:
+        commands.append(['emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'])
+    if preserved_rebuild:
+        commands.append(['emerge', '--keep-going', '--quiet', '--usepkg=n', '@preserved-rebuild'])
+    try:
+        for command in commands:
+            CommandRunner.check_call(command)
     except sp.CalledProcessError as e:
         click.echo(str(e), err=True)
         raise click.Abort from e
