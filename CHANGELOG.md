@@ -8,6 +8,11 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Fixed
+
+- `emerges --exclude` now passes the given atom to `emerge` unchanged. Previously the value was
+  iterated character by character, producing one broken `--exclude=` argument per letter.
+
 ## [1.7.1] - 2026-05-02
 
 ### Removed

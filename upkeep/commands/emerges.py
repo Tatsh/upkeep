@@ -55,7 +55,7 @@ def emerges(
     up_kernel = not no_upgrade_kernel
     ask_arg = ['--ask'] if ask else []
     verbose_arg = ['--verbose'] if verbose else ['--quiet']
-    exclude_arg = [f'--exclude={x}' for x in exclude or []]
+    exclude_arg = [f'--exclude={exclude}'] if exclude else []
     commands = [
         ['emerge', '--oneshot', '--update', 'portage', *verbose_arg],
         [

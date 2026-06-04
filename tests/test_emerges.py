@@ -111,3 +111,15 @@ def test_emerges(mocker: MockFixture, runner: CliRunner) -> None:
     result = runner.invoke(emerges, ('--no-upgrade-kernel'))
     assert result.exit_code == 0
     assert upgrade_kernel.call_count == 0
+
+
+def test_emerges_exclude(mocker: MockFixture, runner: CliRunner) -> None:
+    command_runner = mocker.patch('upkeep.commands.emerges.CommandRunner')
+    mocker.patch('upkeep.commands.emerges.upgrade_kernel')
+    result = runner.invoke(emerges,
+                           ('--no-upgrade-kernel', '--no-live-rebuild', '--no-preserved-rebuild',
+                            '--no-daemon-reexec', '--exclude', 'cat/pkg'))
+    assert result.exit_code == 0
+    world_command = command_runner.check_call.call_args_list[1].args[0]
+    assert '--exclude=cat/pkg' in world_command
+    assert '--exclude=c' not in world_command
