@@ -28,7 +28,7 @@ import click
 @click.option('-v', '--verbose', is_flag=True, help='Pass --verbose to emerge and enable logging.')
 @umask(new_umask=0o022)
 def emerges(
-        config: str | None = None,  # noqa: ARG001
+        config: str | None = None,  # ruff:ignore[unused-function-argument]
         exclude: str | None = None,
         *,
         ask: bool = False,
@@ -47,7 +47,7 @@ def emerges(
     - ``emerge --usepkg=n --keep-going --quiet @preserved-rebuild``
     - ``systemctl daemon-reexec`` if applicable
     - upgrade kernel
-    """  # noqa: D400, DOC501
+    """  # ruff:ignore[missing-trailing-period, docstring-missing-exception]
     setup_logging(debug=verbose, loggers={'upkeep': {'handlers': ('console',), 'propagate': False}})
     live_rebuild = not no_live_rebuild
     preserved_rebuild = not no_preserved_rebuild
