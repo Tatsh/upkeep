@@ -13,7 +13,8 @@ __all__ = ('ecleans',)
 ECLEANS_COMMANDS = (
     ('emerge', '--depclean', '--quiet'), ('emerge', '--quiet', '@preserved-rebuild'),
     ('revdep-rebuild', '--quiet'), ('eclean-dist', '--deep'), ('eclean-pkg', '--deep'),
-    ['rm', '-fR'] + [str(s) for s in Path('/var/tmp/portage').glob('*')])  # noqa: S108
+    ['rm', '-fR'] + [str(s) for s in Path('/var/tmp/portage').glob('*')]
+)  # ruff:ignore[hardcoded-temp-file]
 
 
 @click.command('ecleans')
@@ -28,7 +29,7 @@ def ecleans(*, debug: bool = False) -> None:
     - ``revdep-rebuild --quiet` -- --usepkg=n``
     - ``eclean-dist --deep``
     - ``rm -fR /var/tmp/portage/*``
-    """  # noqa: D400, DOC501
+    """  # ruff:ignore[missing-trailing-period, docstring-missing-exception]
     setup_logging(debug=debug, loggers={'upkeep': {'handlers': ('console',), 'propagate': False}})
     try:
         for command in ECLEANS_COMMANDS:

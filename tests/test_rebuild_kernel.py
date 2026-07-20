@@ -18,7 +18,7 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
         def __init__(self, s: str) -> None:
             self.s = s
 
-        def write_bytes(self, _content: str, /) -> int:  # noqa: PLR6301
+        def write_bytes(self, _content: str, /) -> int:  # ruff:ignore[no-self-use]
             return 0
 
         def is_file(self) -> bool:
@@ -26,7 +26,7 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
                 return False
             if self.s == CONFIG_GZ:
                 return True
-            raise Exception(self.s)  # noqa: TRY002
+            raise Exception(self.s)  # ruff:ignore[raise-vanilla-class]
 
     mocker.patch('upkeep.utils.kernel.Path', new=FakePath)
     mocker.patch('upkeep.utils.kernel.chdir')
