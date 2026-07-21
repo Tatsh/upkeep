@@ -10,11 +10,10 @@ from upkeep.utils import CommandRunner
 import click
 
 __all__ = ('ecleans',)
-ECLEANS_COMMANDS = (
-    ('emerge', '--depclean', '--quiet'), ('emerge', '--quiet', '@preserved-rebuild'),
-    ('revdep-rebuild', '--quiet'), ('eclean-dist', '--deep'), ('eclean-pkg', '--deep'),
-    ['rm', '-fR'] + [str(s) for s in Path('/var/tmp/portage').glob('*')]
-)  # ruff:ignore[hardcoded-temp-file]
+ECLEANS_COMMANDS = (('emerge', '--depclean', '--quiet'),
+                    ('emerge', '--quiet', '@preserved-rebuild'), ('revdep-rebuild', '--quiet'),
+                    ('eclean-dist', '--deep'), ('eclean-pkg', '--deep'),
+                    ['rm', '-fR'] + [str(s) for s in Path('/var/tmp/portage').glob('*')])
 
 
 @click.command('ecleans')
