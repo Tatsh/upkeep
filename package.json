@@ -1,8 +1,8 @@
 {
   "_wiswa": {
-    "commandLine": "wiswa",
-    "lastRun": "2026-05-03T00:46:24Z",
-    "version": "96ccc73"
+    "commandLine": "wiswa -d",
+    "lastRun": "2026-08-05T00:45:39Z",
+    "version": "22472cc"
   },
   "contributors": ["Andrew Udvare <audvare@gmail.com>"],
   "cspell": {
@@ -75,7 +75,7 @@
     "showFound": true
   },
   "name": "upkeep",
-  "packageManager": "yarn@4.14.1",
+  "packageManager": "yarn@4.18.0",
   "prettier": {
     "endOfLine": "lf",
     "iniSpaceAroundEquals": true,
@@ -100,7 +100,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:Tatsh/upkeep.git"
+    "url": "git+https://github.com/Tatsh/upkeep.git"
   },
   "scripts": {
     "check-formatting": "prettier --check . && uv run yapf --diff --parallel --recursive . && markdownlint-cli2 --config package.json --configPointer /markdownlint-cli2",

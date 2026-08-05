@@ -39,6 +39,7 @@ functools
 genindex
 getbinpkg
 globaltoc
+handoff
 hoverxref
 htmlcov
 installkernel
@@ -66,7 +67,6 @@ mypy
 namedtuples
 newuse
 norecursedirs
-npmjs
 numpy
 oldconfig
 oneline
@@ -74,6 +74,7 @@ oneshot
 pathlib
 pavelzw
 plistlib
+preapproved
 proc
 pycache
 pydantic
@@ -98,9 +99,9 @@ setattr
 shellcheck
 shellformat
 snapcraft
-softprops
 soupsieve
 sphinxcontrib
+statusline
 syncer
 tatsh
 testpaths
@@ -112,13 +113,18 @@ tryfirst
 ubyte
 udvare
 umasker
+undraft
+undrafted
 upkeeprc
 usepkg
 vendored
 venv
 virtualenv
+winget
 wiswa
 wiswa's
+worktree
 yapf
 yapfignore
 yarnrc
+zizmor
