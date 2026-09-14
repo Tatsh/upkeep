@@ -8,10 +8,10 @@ from upkeep.exceptions import ConfigError
 
 if TYPE_CHECKING:
     from click.testing import CliRunner
-    from pytest_mock import MockFixture
+    from pytest_mock import MockerFixture
 
 
-def test_do_everything(mocker: MockFixture, runner: CliRunner) -> None:
+def test_do_everything(mocker: MockerFixture, runner: CliRunner) -> None:
     command_runner = mocker.patch('upkeep.commands.everything.CommandRunner')
     emerges = mocker.patch('upkeep.commands.everything.emerges')
     ecleans = mocker.patch('upkeep.commands.everything.ecleans')
@@ -21,7 +21,7 @@ def test_do_everything(mocker: MockFixture, runner: CliRunner) -> None:
     assert ecleans.call_count == 1
 
 
-def test_do_everything_no_sync(mocker: MockFixture, runner: CliRunner) -> None:
+def test_do_everything_no_sync(mocker: MockerFixture, runner: CliRunner) -> None:
     command_runner = mocker.patch('upkeep.commands.everything.CommandRunner')
     emerges = mocker.patch('upkeep.commands.everything.emerges')
     mocker.patch('upkeep.commands.everything.ecleans')
@@ -30,7 +30,7 @@ def test_do_everything_no_sync(mocker: MockFixture, runner: CliRunner) -> None:
     assert emerges.call_count == 1
 
 
-def test_do_everything_no_clean(mocker: MockFixture, runner: CliRunner) -> None:
+def test_do_everything_no_clean(mocker: MockerFixture, runner: CliRunner) -> None:
     mocker.patch('upkeep.commands.everything.CommandRunner')
     emerges = mocker.patch('upkeep.commands.everything.emerges')
     ecleans = mocker.patch('upkeep.commands.everything.ecleans')
@@ -39,7 +39,7 @@ def test_do_everything_no_clean(mocker: MockFixture, runner: CliRunner) -> None:
     assert ecleans.call_count == 0
 
 
-def test_do_everything_sync_hooks(mocker: MockFixture, runner: CliRunner) -> None:
+def test_do_everything_sync_hooks(mocker: MockerFixture, runner: CliRunner) -> None:
     command_runner = mocker.patch('upkeep.commands.everything.CommandRunner')
     mocker.patch('upkeep.commands.everything.emerges')
     mocker.patch('upkeep.commands.everything.ecleans')
@@ -55,7 +55,7 @@ def test_do_everything_sync_hooks(mocker: MockFixture, runner: CliRunner) -> Non
                                                                       ['true', 'after']]
 
 
-def test_do_everything_sync_failure(mocker: MockFixture, runner: CliRunner) -> None:
+def test_do_everything_sync_failure(mocker: MockerFixture, runner: CliRunner) -> None:
     command_runner = mocker.patch('upkeep.commands.everything.CommandRunner')
     command_runner.check_call.side_effect = sp.CalledProcessError(1, ('emerge', '--sync'))
     emerges = mocker.patch('upkeep.commands.everything.emerges')
@@ -63,7 +63,7 @@ def test_do_everything_sync_failure(mocker: MockFixture, runner: CliRunner) -> N
     assert emerges.call_count == 0
 
 
-def test_do_everything_bad_config(mocker: MockFixture, runner: CliRunner) -> None:
+def test_do_everything_bad_config(mocker: MockerFixture, runner: CliRunner) -> None:
     mocker.patch('upkeep.commands.everything.CommandRunner')
     mocker.patch('upkeep.commands.everything.load_config', side_effect=ConfigError('/etc/upkeeprc'))
     emerges = mocker.patch('upkeep.commands.everything.emerges')

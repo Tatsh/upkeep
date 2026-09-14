@@ -8,7 +8,7 @@ from upkeep.main import main
 
 if TYPE_CHECKING:
     from click.testing import CliRunner
-    from pytest_mock import MockFixture
+    from pytest_mock import MockerFixture
 
 SUBCOMMANDS = ('all', 'ecleans', 'emerges', 'rebuild-kernel', 'upgrade-kernel')
 
@@ -28,7 +28,7 @@ def test_main_subcommand_accepts_debug(name: str, runner: CliRunner) -> None:
 
 
 @pytest.mark.parametrize('args', [('-d', 'all'), ('all', '-d'), ('-d', 'all', '-d')])
-def test_main_debug_either_side_of_subcommand(args: tuple[str, ...], mocker: MockFixture,
+def test_main_debug_either_side_of_subcommand(args: tuple[str, ...], mocker: MockerFixture,
                                               runner: CliRunner) -> None:
     setup_logging = mocker.patch('upkeep.cli.setup_logging')
     mocker.patch('upkeep.commands.everything.CommandRunner')
@@ -38,7 +38,7 @@ def test_main_debug_either_side_of_subcommand(args: tuple[str, ...], mocker: Moc
     assert setup_logging.call_args.kwargs['debug'] is True
 
 
-def test_main_without_debug(mocker: MockFixture, runner: CliRunner) -> None:
+def test_main_without_debug(mocker: MockerFixture, runner: CliRunner) -> None:
     setup_logging = mocker.patch('upkeep.cli.setup_logging')
     mocker.patch('upkeep.commands.everything.CommandRunner')
     mocker.patch('upkeep.commands.everything.emerges')

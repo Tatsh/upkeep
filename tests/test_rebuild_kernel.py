@@ -11,10 +11,10 @@ from upkeep.utils.kernel import rebuild_kernel
 
 if TYPE_CHECKING:
     from click.testing import CliRunner
-    from pytest_mock.plugin import MockerFixture as MockFixture
+    from pytest_mock import MockerFixture
 
 
-def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
+def test_rebuild_kernel_no_config_yes_gz(mocker: MockerFixture) -> None:
     class FakePath:
         def __init__(self, s: str) -> None:
             self.s = s
@@ -38,7 +38,7 @@ def test_rebuild_kernel_no_config_yes_gz(mocker: MockFixture) -> None:
     assert gzip_open.call_count == 1
 
 
-def test_kernel_command_raises_abort(mocker: MockFixture, runner: CliRunner) -> None:
+def test_kernel_command_raises_abort(mocker: MockerFixture, runner: CliRunner) -> None:
     def raise_(x: int | None) -> None:
         raise KernelError
 

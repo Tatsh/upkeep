@@ -4,26 +4,27 @@ from typing import TYPE_CHECKING
 import subprocess as sp
 import sys
 
-from click.testing import CliRunner
-
 from upkeep.commands import emerges_command as emerges
 from upkeep.exceptions import ConfigError
 
 if TYPE_CHECKING:
-    from pytest_mock import MockFixture
+    from click.testing import CliRunner
+    from pytest_mock import MockerFixture
 
     from .utils import SubprocessMocker
 
 
-def test_emerges_keyboard_interrupt(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+def test_emerges_keyboard_interrupt(sp_mocker: SubprocessMocker, mocker: MockerFixture,
+                                    runner: CliRunner) -> None:
     sp_mocker.add_output4(['emerge', '--oneshot', '--update', 'portage', '--quiet'],
                           raise_=True,
                           check=True)
     mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
-    assert CliRunner().invoke(emerges).exit_code != 0
+    assert runner.invoke(emerges).exit_code != 0
 
 
-def test_emerges_live_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+def test_emerges_live_rebuild(sp_mocker: SubprocessMocker, mocker: MockerFixture,
+                              runner: CliRunner) -> None:
     sp_mocker.add_output4(['emerge', '--oneshot', '--update', 'portage', '--quiet'], check=True)
     sp_mocker.add_output4([
         'emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '--with-bdeps=y',
@@ -41,11 +42,12 @@ def test_emerges_live_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixture) 
     sp_mocker.add_output4(['systemctl', 'daemon-reexec'], check=True)
     sp_mocker.add_output3(['eselect', '--colour=no', 'kernel', 'list'], stdout_output='')
     mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
-    assert CliRunner().invoke(emerges).exit_code == 0
+    assert runner.invoke(emerges).exit_code == 0
     assert ('emerge --keep-going --quiet --usepkg=n @live-rebuild') in sp_mocker.history
 
 
-def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker, mocker: MockerFixture,
+                                   runner: CliRunner) -> None:
     sys.argv = ['emerges', '--no-live-rebuild', '--no-daemon-reexec', '--no-upgrade-kernel']
     sp_mocker.add_output4(('emerge', '--oneshot', '--update', 'portage', '--quiet'), check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
@@ -62,11 +64,12 @@ def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixt
     sp_mocker.add_output4(('systemctl', 'daemon-reexec'), check=True)
     sp_mocker.add_output3(['eselect', '--colour=no', 'kernel', 'list'], stdout_output='')
     mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
-    assert CliRunner().invoke(emerges).exit_code == 0
+    assert runner.invoke(emerges).exit_code == 0
     assert ('emerge --keep-going --quiet --usepkg=n @preserved-rebuild') in sp_mocker.history
 
 
-def test_emerges_daemon_reexec(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+def test_emerges_daemon_reexec(sp_mocker: SubprocessMocker, mocker: MockerFixture,
+                               runner: CliRunner) -> None:
     sys.argv = ['emerges', '--no-live-rebuild', '--no-preserved-rebuild', '--no-upgrade-kernel']
     sp_mocker.add_output4(('emerge', '--oneshot', '--update', 'portage', '--quiet'), check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
@@ -83,11 +86,12 @@ def test_emerges_daemon_reexec(sp_mocker: SubprocessMocker, mocker: MockFixture)
     sp_mocker.add_output4(('systemctl', 'daemon-reexec'), check=True)
     sp_mocker.add_output3(['eselect', '--colour=no', 'kernel', 'list'], stdout_output='')
     mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
-    assert CliRunner().invoke(emerges).exit_code == 0
+    assert runner.invoke(emerges).exit_code == 0
     assert 'systemctl daemon-reexec' in sp_mocker.history
 
 
-def test_emerges_daemon_reexec_no_systemd(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+def test_emerges_daemon_reexec_no_systemd(sp_mocker: SubprocessMocker, mocker: MockerFixture,
+                                          runner: CliRunner) -> None:
     sys.argv = ['emerges', '--no-live-rebuild', '--no-preserved-rebuild', '--no-upgrade-kernel']
     sp_mocker.add_output4(('emerge', '--oneshot', '--update', 'portage', '--quiet'), check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
@@ -104,12 +108,12 @@ def test_emerges_daemon_reexec_no_systemd(sp_mocker: SubprocessMocker, mocker: M
                           stderr=sp.DEVNULL)
     sp_mocker.add_output3(['eselect', '--colour=no', 'kernel', 'list'], stdout_output='')
     mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
-    result = CliRunner().invoke(emerges)
+    result = runner.invoke(emerges)
     assert result.exit_code == 0
     assert 'systemctl daemon-reexec' not in sp_mocker.history
 
 
-def test_emerges(mocker: MockFixture, runner: CliRunner) -> None:
+def test_emerges(mocker: MockerFixture, runner: CliRunner) -> None:
     mocker.patch('upkeep.commands.emerges.CommandRunner')
     upgrade_kernel = mocker.patch('upkeep.commands.emerges.upgrade_kernel')
     result = runner.invoke(emerges, ('--no-upgrade-kernel'))
@@ -117,7 +121,7 @@ def test_emerges(mocker: MockFixture, runner: CliRunner) -> None:
     assert upgrade_kernel.call_count == 0
 
 
-def test_emerges_exclude(mocker: MockFixture, runner: CliRunner) -> None:
+def test_emerges_exclude(mocker: MockerFixture, runner: CliRunner) -> None:
     command_runner = mocker.patch('upkeep.commands.emerges.CommandRunner')
     mocker.patch('upkeep.commands.emerges.upgrade_kernel')
     result = runner.invoke(emerges,
@@ -129,7 +133,7 @@ def test_emerges_exclude(mocker: MockFixture, runner: CliRunner) -> None:
     assert '--exclude=c' not in world_command
 
 
-def test_emerges_extra_args(mocker: MockFixture, runner: CliRunner) -> None:
+def test_emerges_extra_args(mocker: MockerFixture, runner: CliRunner) -> None:
     command_runner = mocker.patch('upkeep.commands.emerges.CommandRunner')
     mocker.patch('upkeep.commands.emerges.upgrade_kernel')
     mocker.patch('upkeep.commands.emerges.load_config',
@@ -141,7 +145,7 @@ def test_emerges_extra_args(mocker: MockFixture, runner: CliRunner) -> None:
     assert '--backtrack=1000' in command_runner.check_call.call_args_list[1].args[0]
 
 
-def test_emerges_bad_config(mocker: MockFixture, runner: CliRunner) -> None:
+def test_emerges_bad_config(mocker: MockerFixture, runner: CliRunner) -> None:
     command_runner = mocker.patch('upkeep.commands.emerges.CommandRunner')
     mocker.patch('upkeep.commands.emerges.load_config', side_effect=ConfigError('/etc/upkeeprc'))
     assert runner.invoke(emerges).exit_code != 0
