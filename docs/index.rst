@@ -1,36 +1,23 @@
-Upkeep
+upkeep
 ======
 
 .. include:: badges.rst
 
-.. only:: man
+Portage update helper commands.
 
-  .. include:: ecleans.rst
-  .. include:: emerges.rst
-  .. include:: rebuild-kernel.rst
-  .. include:: upgrade-kernel.rst
+Commands
+--------
 
+.. click:: upkeep.main:main
+   :prog: upkeep
+   :nested: full
 
 .. only:: html
 
-  Command line
-  ------------
-  * :doc:`ecleans <ecleans>`
-  * :doc:`emerges <emerges>`
-  * :doc:`rebuild-kernel <rebuild-kernel>`
-  * :doc:`upgrade-kernel <upgrade-kernel>`
+   .. automodule:: upkeep.utils
+      :members:
 
-  Library
-  -------
-  .. automodule:: upkeep.utils.kernel
-     :members:
-
-  .. toctree::
-     :maxdepth: 2
-     :caption: Contents:
-
-  Indices and tables
-  ==================
-  * :ref:`genindex`
-  * :ref:`modindex`
-  * :ref:`search`
+   Indices and tables
+   ==================
+   * :ref:`genindex`
+   * :ref:`modindex`

@@ -12,6 +12,8 @@ from .utils import SubprocessMocker
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
+    from pytest_mock import MockerFixture
+
 if os.getenv('_PYTEST_RAISE', '0') != '0':  # pragma no cover
 
     @pytest.hookimpl(tryfirst=True)
@@ -34,3 +36,9 @@ def sp_mocker() -> Iterator[SubprocessMocker]:
     m = SubprocessMocker()
     yield m
     m.reset_output()
+
+
+@pytest.fixture(autouse=True)
+def _empty_user_config(mocker: MockerFixture) -> None:
+    for module in ('ecleans', 'emerges', 'everything'):
+        mocker.patch(f'upkeep.commands.{module}.load_config', return_value={})

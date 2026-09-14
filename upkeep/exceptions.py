@@ -1,10 +1,14 @@
 """Exceptions."""
 from __future__ import annotations
 
-from .constants import MINIMUM_ESELECT_LINES
+__all__ = ('ConfigError', 'KernelConfigMissing', 'KernelError', 'NoKernelToUpgradeTo',
+           'NoValueIsUnselected')
 
-__all__ = ('KernelConfigMissing', 'KernelError', 'NoKernelToUpgradeTo', 'NoValueIsUnselected',
-           'TooManyLinesFromEselect')
+
+class ConfigError(ValueError):
+    """Raised when the configuration file cannot be parsed."""
+    def __init__(self, path: str) -> None:
+        super().__init__(f'Invalid configuration in `{path}`.')
 
 
 class KernelError(FileNotFoundError):
@@ -23,13 +27,7 @@ class NoKernelToUpgradeTo(KernelError):
         super().__init__('No kernel to upgrade to.')
 
 
-class TooManyLinesFromEselect(KernelError):
-    """Raised when there are too many lines in the output from ``eselect kernel list``."""
-    def __init__(self) -> None:
-        super().__init__(f'Found more than {MINIMUM_ESELECT_LINES} lines in eselect output.')
-
-
 class NoValueIsUnselected(KernelError):
-    """Raised when no value is unselected in the output from ``eselect kernel list``."""
+    """Raised when ``eselect kernel list`` lists no usable entries."""
     def __init__(self) -> None:
-        super().__init__('No value is unselected in eselect output.')
+        super().__init__('No usable entries in eselect output.')

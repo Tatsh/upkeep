@@ -7,11 +7,12 @@ import subprocess as sp
 
 from click.testing import CliRunner
 from typing_extensions import Self, override
+import pytest
+
 from upkeep.commands import emerges_command as emerges
 from upkeep.constants import OLD_KERNELS_DIR
-from upkeep.exceptions import KernelConfigMissing, NoValueIsUnselected
+from upkeep.exceptions import KernelConfigMissing, NoKernelToUpgradeTo, NoValueIsUnselected
 from upkeep.utils.kernel import upgrade_kernel
-import pytest
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -43,9 +44,9 @@ def test_upgrade_kernel_no_eselect_output(sp_mocker: SubprocessMocker, mocker: M
                          stdout_output='',
                          check=True,
                          stdout=sp.PIPE)
-    sp_mocker.add_output(
-        ('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world', '--quiet'),
-        check=True)
+    sp_mocker.add_output(('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
+                          '--with-bdeps=y', '@world', '--quiet'),
+                         check=True)
     sp_mocker.add_output(['emerge', '--oneshot', '--update', 'portage', '--quiet'], check=True)
     sp_mocker.add_output(['emerge', '--keep-going', '--quiet', '@live-rebuild'], check=True)
     sp_mocker.add_output(['emerge', '--keep-going', '--quiet', '@preserved-rebuild'], check=True)
@@ -61,33 +62,46 @@ def test_upgrade_kernel_no_eselect_output(sp_mocker: SubprocessMocker, mocker: M
                                '--fatal-upgrade-kernel')).exit_code != 0
 
 
-def test_upgrade_kernel_eselect_too_many_kernels(sp_mocker: SubprocessMocker,
-                                                 mocker: MockFixture) -> None:
-    sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'), stdout_output=' *\n \n')
-    sp_mocker.add_output(
-        ('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world', '--quiet'),
-        check=True)
-    sp_mocker.add_output3(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
-                          stdout_output=' \n \n \n')
-    sp_mocker.add_output(['emerge', '--oneshot', '--update', 'portage', '--quiet'], check=True)
-    mocker.patch('upkeep.utils.kernel.Path').return_value.glob = method_return1(['/etc/profile'])
-    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
-    assert CliRunner().invoke(emerges,
-                              ('--no-live-rebuild', '--no-preserved-rebuild', '--no-daemon-reexec',
-                               '--fatal-upgrade-kernel')).exit_code != 0
-
-
-def test_upgrade_kernel_eselect_kernel_set_invalid_output_from_eselect(
-        sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+def test_upgrade_kernel_three_kernels(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+    rebuild = mocker.patch('upkeep.utils.kernel.rebuild_kernel')
     sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
-                          stdout_output=' [3] *\n [4] \n')
-    sp_mocker.add_output3(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
-                          stdout_output=' *\n \n')
-    mocker.patch('upkeep.utils.kernel.Path').return_value.glob = method_return1(['/etc/profile'])
+                          stdout_output=' [1] linux-6.12.16-gentoo\n'
+                          ' [2] linux-6.12.31-gentoo *\n'
+                          ' [3] linux-6.16.4-gentoo\n')
+    sp_mocker.add_output3(('eselect', 'kernel', 'set', '3'), stdout=sp.DEVNULL, stderr=sp.DEVNULL)
     mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
-    assert CliRunner().invoke(emerges,
-                              ('emerges', '--no-live-rebuild', '--no-preserved-rebuild',
-                               '--no-daemon-reexec', '--fatal-upgrade-kernel')).exit_code != 0
+    upgrade_kernel()
+    assert 'eselect kernel set 3' in sp_mocker.history
+    assert rebuild.call_count == 1
+
+
+def test_upgrade_kernel_nothing_selected(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+    rebuild = mocker.patch('upkeep.utils.kernel.rebuild_kernel')
+    sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
+                          stdout_output=' [1] linux-6.12.16-gentoo\n [2] linux-6.16.4-gentoo\n')
+    sp_mocker.add_output3(('eselect', 'kernel', 'set', '2'), stdout=sp.DEVNULL, stderr=sp.DEVNULL)
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
+    upgrade_kernel()
+    assert 'eselect kernel set 2' in sp_mocker.history
+    assert rebuild.call_count == 1
+
+
+def test_upgrade_kernel_already_newest(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
+    sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
+                          stdout_output=' [1] linux-6.12.16-gentoo\n [2] linux-6.16.4-gentoo *\n')
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
+    with pytest.raises(NoKernelToUpgradeTo):
+        upgrade_kernel()
+
+
+def test_upgrade_kernel_already_newest_non_fatal(sp_mocker: SubprocessMocker,
+                                                 mocker: MockFixture) -> None:
+    rebuild = mocker.patch('upkeep.utils.kernel.rebuild_kernel')
+    sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
+                          stdout_output=' [1] linux-6.12.16-gentoo\n [2] linux-6.16.4-gentoo *\n')
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
+    upgrade_kernel(fatal=False)
+    assert rebuild.call_count == 0
 
 
 def test_upgrade_kernel_rebuild_no_config(mocker: MockFixture, sp_mocker: SubprocessMocker) -> None:
@@ -221,18 +235,6 @@ def test_upgrade_kernel_rebuild_systemd_boot_normal(mocker: MockFixture,
         upgrade_kernel()
     except RuntimeError as e:
         pytest.fail(f'Unexpected RuntimeError: {e.args}')
-
-
-def test_upgrade_kernel_eselect_kernel_non_fatal(mocker: MockFixture,
-                                                 sp_mocker: SubprocessMocker) -> None:
-    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
-    sp_mocker.add_output3(('eselect', '--colour=no', 'kernel', 'list'),
-                          stdout_output=' [1] *\n [2] linux-5.6.6-gentoo\n')
-    sp_mocker.add_output3(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
-                          stdout_output=' *\n \n \n')
-    abort = mocker.patch('upkeep.utils.kernel.KernelConfigMissing')
-    upgrade_kernel(fatal=False)
-    assert abort.call_count == 0
 
 
 def test_upgrade_kernel_no_config_non_fatal(mocker: MockFixture,

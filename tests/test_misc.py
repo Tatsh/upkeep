@@ -16,11 +16,11 @@ def test_umask_with_function() -> None:
 
 
 def test_kernel_command() -> None:
-    assert CliRunner().invoke(kernel_command(lambda _: None)).exit_code == 0
+    assert CliRunner().invoke(kernel_command('test-kernel', lambda _: None)).exit_code == 0
 
 
 def test_kernel_command_raise() -> None:
     def raise_(_x: int | None) -> None:
         raise click.Abort
 
-    assert CliRunner().invoke(kernel_command(raise_)).exit_code != 0
+    assert CliRunner().invoke(kernel_command('test-kernel', raise_)).exit_code != 0

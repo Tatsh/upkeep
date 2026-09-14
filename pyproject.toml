@@ -21,7 +21,6 @@ docs = [
   "sphinx-datatables>=1.0.0",
   "sphinx-immaterial>=0.13.9",
   "sphinx>=9.1.0; python_version >= \"3.13\"",
-  "tomlkit>=0.15.1",
 ]
 tests = [
   "coveralls>=4.1.0",
@@ -44,7 +43,7 @@ classifiers = [
   "Programming Language :: Python :: 3.14",
   "Typing :: Typed",
 ]
-dependencies = ["bascom>=0.2.0", "click>=8.5.0", "typing-extensions>=4.16.0"]
+dependencies = ["bascom>=0.2.0", "click>=8.5.0", "tomlkit>=0.15.1", "typing-extensions>=4.16.0"]
 description = "Portage update helper commands."
 keywords = ["administration", "command line", "gentoo"]
 license = "MIT"
@@ -58,10 +57,7 @@ email = "audvare@gmail.com"
 name = "Andrew Udvare"
 
 [project.scripts]
-ecleans = "upkeep.commands:ecleans_command"
-emerges = "upkeep.commands:emerges_command"
-rebuild-kernel = "upkeep.commands:rebuild_kernel_command"
-upgrade-kernel = "upkeep.commands:upgrade_kernel_command"
+upkeep = "upkeep.main:main"
 
 [project.urls]
 Issues = "https://github.com/Tatsh/upkeep/issues"

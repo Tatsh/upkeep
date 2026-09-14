@@ -20,6 +20,7 @@ datatable
 datatables
 debugpy
 depclean
+distfiles
 docstrings
 doctree
 doctrees
@@ -115,7 +116,6 @@ statusline
 syncer
 tatsh
 testpaths
-toctree
 tomlkit
 tomllib
 tostring

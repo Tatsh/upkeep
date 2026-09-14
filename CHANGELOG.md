@@ -8,10 +8,47 @@ and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+- `upkeep all` command. Runs `emerge --sync` (skip with `--no-sync`), then `emerges`, then
+  `ecleans` (skip with `--no-clean`).
+- `-d`/`--debug` is accepted on either side of the subcommand name, so `upkeep -d all` and
+  `upkeep all -d` are equivalent.
+- `upkeep --version` and `python -m upkeep`.
+- `/etc/upkeeprc` is now read. It is TOML and supports `[emerge] extra_args`,
+  `[ecleans] extra_purge_dirs`, and `[sync] pre`/`post` hook commands. The `--config` option
+  previously existed but was ignored.
+- `ecleans` now runs `eclean-pkg --deep` and `emaint --fix all`, and deletes zero-length files
+  under `PKGDIR`.
+
+### Changed
+
+- **Breaking:** the separate `ecleans`, `emerges`, `rebuild-kernel`, and `upgrade-kernel`
+  executables are replaced by subcommands of a single `upkeep` command. Replace `emerges` with
+  `upkeep emerges`, and so on.
+- `-v`/`--verbose` on `emerges` now only passes `--verbose` to `emerge`. Use `-d`/`--debug` for
+  debug logging.
+- `ecleans` purges `${PORTAGE_TMPDIR}/portage` as reported by `portageq` instead of the hardcoded
+  `/var/tmp/portage`, and does so before the `emerge` steps rather than after.
+- The kernel upgrade now selects the highest-numbered entry from `eselect kernel list` instead of
+  refusing to act unless exactly two entries are present.
+
 ### Fixed
 
 - `emerges --exclude` now passes the given atom to `emerge` unchanged. Previously the value was
   iterated character by character, producing one broken `--exclude=` argument per letter.
+- `ecleans` evaluated its `/var/tmp/portage` glob at import time, so it deleted only what existed
+  when the process started and missed everything the run itself created.
+- `upgrade_kernel` consumed the `eselect kernel list` output generator twice. Depending on which
+  entry was selected, the second pass saw a partially drained iterator and reported
+  `NoValueIsUnselected` instead of the real state.
+- `emerges` passes `--with-bdeps=y` to the `@world` update, which the README already documented.
+
+### Removed
+
+- `TooManyLinesFromEselect` exception and the `MINIMUM_ESELECT_LINES` constant.
+- `DISABLE_GETBINPKG_ENV_DICT` constant. It was never referenced; set `FEATURES=-getbinpkg` in the
+  environment instead, which `minenv()` passes through.
 
 ## [1.7.1] - 2026-05-02
 

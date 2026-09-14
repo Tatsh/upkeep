@@ -10,19 +10,26 @@ import logging
 import re
 import subprocess as sp
 
-from upkeep.constants import CONFIG_GZ, KERNEL_SOURCE_DIR, MINIMUM_ESELECT_LINES
-from upkeep.exceptions import (
-    KernelConfigMissing,
-    NoKernelToUpgradeTo,
-    NoValueIsUnselected,
-    TooManyLinesFromEselect,
-)
+from upkeep.constants import CONFIG_GZ, KERNEL_SOURCE_DIR
+from upkeep.exceptions import KernelConfigMissing, NoKernelToUpgradeTo, NoValueIsUnselected
 
 from . import CommandRunner
 
 __all__ = ('rebuild_kernel', 'upgrade_kernel')
 
 logger = logging.getLogger(__name__)
+
+KERNEL_ENTRY_RE = re.compile(r'^\[(\d+)\]')
+"""Matches the index of an entry in ``eselect kernel list`` output.
+
+:meta hide-value:
+"""
+
+
+def _kernel_entries(output: str) -> tuple[tuple[int, bool], ...]:
+    return tuple((int(m.group(1)), line.endswith('*'))
+                 for line in (s.strip() for s in output.splitlines())
+                 if (m := KERNEL_ENTRY_RE.match(line)))
 
 
 def rebuild_kernel(num_cpus: int | None = None) -> None:
@@ -80,27 +87,25 @@ def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) ->
     """
     Upgrades the kernel.
 
-    The logic used here is to check the `eselect kernel` output for two kernel
-    lines, where one is selected and the newest kernel is not. The newest
-    kernel then gets picked and ``upgrade_kernel()`` takes care of the rest.
+    ``eselect kernel list`` sorts its entries by version, so the highest-numbered entry is the
+    newest kernel available. If that entry is not already selected it is selected and
+    :py:func:`rebuild_kernel` takes care of the rest.
 
     Parameters
     ----------
     num_cpus : int
         Number of CPUs (or threads) to pass to ``make -j...``. If not passed,
         defaults to getting the value from ``multiprocessing.cpu_count()``.
-    fatal : Optional[bool]
+    fatal : bool | None
         If ``True``, raises certain exceptions or returns 1. If ``False``,
         always returns 0.
 
     Raises
     ------
     NoKernelToUpgradeTo
-        If there is no newer kernel to upgrade to.
-    TooManyLinesFromEselect
-        If there are too many lines in the output from ``eselect kernel list``.
+        If the newest kernel is already selected.
     NoValueIsUnselected
-        If no value is unselected in the output from ``eselect kernel list``.
+        If ``eselect kernel list`` lists no usable entries.
     KernelConfigMissing
         If a kernel configuration cannot be found.
 
@@ -108,31 +113,20 @@ def upgrade_kernel(num_cpus: int | None = None, *, fatal: bool | None = True) ->
     --------
     rebuild_kernel
     """
-    kernel_list = CommandRunner.run(('eselect', '--colour=no', 'kernel', 'list'), stdout=sp.PIPE)
-    lines = (s.strip() for s in kernel_list.stdout.splitlines() if s)
-    if not any(re.search(r'\*$', line) for line in lines):
-        logger.debug('Select a kernel to upgrade to (eselect kernel set ...).')
-        if fatal:
-            raise NoKernelToUpgradeTo
-        return
-    if (len([
-            s for s in CommandRunner.run(('eselect', '--colour=no', '--brief', 'kernel', 'list'),
-                                         stdout=sp.PIPE).stdout.splitlines() if s
-    ]) > MINIMUM_ESELECT_LINES):
-        logger.info('Unexpected number of lines (eselect --brief). Not updating kernel.')
-        if fatal:
-            raise TooManyLinesFromEselect
-        return
-    unselected = None
-    for line in (x for x in lines if not x.endswith('*')):
-        if m := re.search(r'^\[([0-9]+)\]', line):
-            unselected = int(m.group(1))
-            break
-    if not unselected:
+    entries = _kernel_entries(
+        CommandRunner.run(('eselect', '--colour=no', 'kernel', 'list'), stdout=sp.PIPE).stdout)
+    if not entries:
+        logger.debug('`eselect kernel list` listed no kernels.')
         if fatal:
             raise NoValueIsUnselected
         return
-    cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(unselected))
+    newest = max(index for index, _ in entries)
+    if newest in {index for index, is_selected in entries if is_selected}:
+        logger.info('The newest kernel is already selected.')
+        if fatal:
+            raise NoKernelToUpgradeTo
+        return
+    cmd: tuple[str, ...] = ('eselect', 'kernel', 'set', str(newest))
     logger.debug('Running: %s', ' '.join(quote(c) for c in cmd))
     CommandRunner.suppress_output(cmd)
     try:

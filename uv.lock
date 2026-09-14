@@ -2641,6 +2641,7 @@ source = { editable = "." }
 dependencies = [
     { name = "bascom" },
     { name = "click" },
+    { name = "tomlkit" },
     { name = "typing-extensions" },
 ]
 
@@ -2663,7 +2664,6 @@ docs = [
     { name = "sphinx-click" },
     { name = "sphinx-datatables" },
     { name = "sphinx-immaterial" },
-    { name = "tomlkit" },
 ]
 tests = [
     { name = "coveralls" },
@@ -2678,6 +2678,7 @@ tests = [
 requires-dist = [
     { name = "bascom", specifier = ">=0.2.0" },
     { name = "click", specifier = ">=8.5.0" },
+    { name = "tomlkit", specifier = ">=0.15.1" },
     { name = "typing-extensions", specifier = ">=4.16.0" },
 ]
 
@@ -2700,7 +2701,6 @@ docs = [
     { name = "sphinx-click", specifier = ">=6.2.0" },
     { name = "sphinx-datatables", specifier = ">=1.0.0" },
     { name = "sphinx-immaterial", specifier = ">=0.13.9" },
-    { name = "tomlkit", specifier = ">=0.15.1" },
 ]
 tests = [
     { name = "coveralls", specifier = ">=4.1.0" },

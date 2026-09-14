@@ -10,19 +10,16 @@ local utils = import 'utils.libjsonnet';
   want_appimage: false,
   want_flatpak: false,
   want_snap: false,
-  has_multiple_entry_points: true,
+  has_multiple_entry_points: false,
   supported_platforms: ['linux'],
   prettierignore+: ['*.service', '*.timer'],
+  python_deps+: {
+    main+: {
+      tomlkit: utils.latestPypiPackageVersionCaret('tomlkit'),
+    },
+  },
   security_policy_supported_versions: { '1.7.x': ':white_check_mark:' },
   pyproject+: {
-    project+: {
-      scripts: {
-        ecleans: 'upkeep.commands:ecleans_command',
-        emerges: 'upkeep.commands:emerges_command',
-        'rebuild-kernel': 'upkeep.commands:rebuild_kernel_command',
-        'upgrade-kernel': 'upkeep.commands:upgrade_kernel_command',
-      },
-    },
     tool+: {
       poetry+: {
         group+: {

@@ -42,5 +42,5 @@ def test_kernel_command_raises_abort(mocker: MockFixture, runner: CliRunner) -> 
     def raise_(x: int | None) -> None:
         raise KernelError
 
-    res = runner.invoke(kernel_command(raise_))
+    res = runner.invoke(kernel_command('test-kernel', raise_))
     assert res.return_value != 0

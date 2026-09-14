@@ -5,6 +5,7 @@ import subprocess as sp
 import sys
 
 from click.testing import CliRunner
+
 from upkeep.commands import emerges_command as emerges
 
 if TYPE_CHECKING:
@@ -23,9 +24,11 @@ def test_emerges_keyboard_interrupt(sp_mocker: SubprocessMocker, mocker: MockFix
 
 def test_emerges_live_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
     sp_mocker.add_output4(['emerge', '--oneshot', '--update', 'portage', '--quiet'], check=True)
-    sp_mocker.add_output4(
-        ['emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world', '--quiet'],
-        check=True)
+    sp_mocker.add_output4([
+        'emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '--with-bdeps=y',
+        '@world', '--quiet'
+    ],
+                          check=True)
     sp_mocker.add_output4(['emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'],
                           check=True)
     sp_mocker.add_output4(['emerge', '--keep-going', '--quiet', '--usepkg=n', '@preserved-rebuild'],
@@ -44,9 +47,9 @@ def test_emerges_live_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixture) 
 def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
     sys.argv = ['emerges', '--no-live-rebuild', '--no-daemon-reexec', '--no-upgrade-kernel']
     sp_mocker.add_output4(('emerge', '--oneshot', '--update', 'portage', '--quiet'), check=True)
-    sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world', '--quiet'),
-        check=True)
+    sp_mocker.add_output4(('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
+                           '--with-bdeps=y', '@world', '--quiet'),
+                          check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n', '@preserved-rebuild'),
                           check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'),
@@ -65,9 +68,9 @@ def test_emerges_preserved_rebuild(sp_mocker: SubprocessMocker, mocker: MockFixt
 def test_emerges_daemon_reexec(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
     sys.argv = ['emerges', '--no-live-rebuild', '--no-preserved-rebuild', '--no-upgrade-kernel']
     sp_mocker.add_output4(('emerge', '--oneshot', '--update', 'portage', '--quiet'), check=True)
-    sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world', '--quiet'),
-        check=True)
+    sp_mocker.add_output4(('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
+                           '--with-bdeps=y', '@world', '--quiet'),
+                          check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'),
                           check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n', '@preserved-rebuild'),
@@ -86,9 +89,9 @@ def test_emerges_daemon_reexec(sp_mocker: SubprocessMocker, mocker: MockFixture)
 def test_emerges_daemon_reexec_no_systemd(sp_mocker: SubprocessMocker, mocker: MockFixture) -> None:
     sys.argv = ['emerges', '--no-live-rebuild', '--no-preserved-rebuild', '--no-upgrade-kernel']
     sp_mocker.add_output4(('emerge', '--oneshot', '--update', 'portage', '--quiet'), check=True)
-    sp_mocker.add_output4(
-        ('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse', '@world', '--quiet'),
-        check=True)
+    sp_mocker.add_output4(('emerge', '--keep-going', '--tree', '--update', '--deep', '--newuse',
+                           '--with-bdeps=y', '@world', '--quiet'),
+                          check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n', '@live-rebuild'),
                           check=True)
     sp_mocker.add_output4(('emerge', '--keep-going', '--quiet', '--usepkg=n', '@preserved-rebuild'),

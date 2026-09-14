@@ -27,31 +27,25 @@ level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
 .in \\n[rst2man-indent\\n[rst2man-indent-level]]u
 ..
-.TH "UPKEEP" "1" "May 03, 2026" "1.7.1" "upkeep"
+.TH "UPKEEP" "1" "Sep 14, 2026" "1.7.1" "upkeep"
 .SH NAME
 upkeep \- upkeep v1.7.1
-.SH ECLEANS
 .sp
-Run the following clean up commands:
-.INDENT 0.0
-.IP \(bu 2
-\fBemerge \-\-depclean \-\-quiet\fP
-.IP \(bu 2
-\fBemerge \-\-usepkg=n \-\-quiet @preserved\-rebuild\fP
-.IP \(bu 2
-\fBrevdep\-rebuild \-\-quiet\(ga \-\- \-\-usepkg=n\fP
-.IP \(bu 2
-\fBeclean\-dist \-\-deep\fP
-.IP \(bu 2
-\fBrm \-fR /var/tmp/portage/*\fP
-.UNINDENT
+Portage update helper commands.
+.SH COMMANDS
+.SS upkeep
+.sp
+Maintain a Gentoo system.
+.sp
+\fB\-\-debug\fP is also accepted by every subcommand, so it may be given on either side of the
+subcommand name.
 .sp
 Usage
 .INDENT 0.0
 .INDENT 3.5
 .sp
 .EX
-ecleans [OPTIONS]
+upkeep [OPTIONS] COMMAND [ARGS]...
 .EE
 .UNINDENT
 .UNINDENT
@@ -62,48 +56,135 @@ Options
 .B \-d, \-\-debug
 Enable debug logging.
 .UNINDENT
-.SH EMERGES
-.sp
-Run the following steps:
 .INDENT 0.0
-.IP \(bu 2
-\fBemerge \-\-oneshot \-\-quiet \-\-update portage\fP
-.IP \(bu 2
-\fBemerge \-\-keep\-going \-\-tree \-\-quiet \-\-update \-\-deep \-\-newuse @world\fP
-.IP \(bu 2
-\fBemerge \-\-usepkg=n \-\-keep\-going \-\-quiet @live\-rebuild\fP
-.IP \(bu 2
-\fBemerge \-\-usepkg=n \-\-keep\-going \-\-quiet @preserved\-rebuild\fP
-.IP \(bu 2
-\fBsystemctl daemon\-reexec\fP if applicable
-.IP \(bu 2
-upgrade kernel
+.TP
+.B \-\-version
+Show the version and exit.
 .UNINDENT
+.SS all
 .sp
-This function understands the following CLI flags:
-.INDENT 0.0
-.IP \(bu 2
-\fB\-a\fP / \fB\-\-ask\fP: Pass \fB\-\-ask\fP to the \fBemerge @world\fP command
-.IP \(bu 2
-\fB\-L\fP / \fB\-\-no\-live\-rebuild\fP: Skip \fBemerge @live\-rebuild\fP step
-.IP \(bu 2
-\fB\-P\fP / \fB\-\-no\-preserved\-rebuild\fP: Skip \fBemerge @preserved\-rebuild\fP
-step
-.IP \(bu 2
-\fB\-D\fP / \fB\-\-no\-daemon\-reexec\fP: Skip \fBsystemctl daemon\-reexec\fP step
-.IP \(bu 2
-\fB\-U\fP / \fB\-\-no\-upgrade\-kernel\fP: Skip upgrading the kernel
-.UNINDENT
-.SS See Also
+Sync, update, and clean in one pass.
+.nf
+\- \fBemerge \-\-sync\fP, wrapped by any configured \fB[sync]\fP hooks (skip with \fB\-\-no\-sync\fP)
+\- everything \fBemerges\fP does, including the kernel upgrade
+\- everything \fBecleans\fP does (skip with \fB\-\-no\-clean\fP)
+.fi
 .sp
-upgrade_kernel
 .sp
 Usage
 .INDENT 0.0
 .INDENT 3.5
 .sp
 .EX
-emerges [OPTIONS]
+upkeep all [OPTIONS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Options
+.INDENT 0.0
+.TP
+.B \-\-fatal\-upgrade\-kernel
+Exit with status > 0 if kernel upgrade cannot be done.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-C, \-\-no\-clean
+Skip the clean\-up stage.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-S, \-\-no\-sync
+Skip synchronising the repositories.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-U, \-\-no\-upgrade\-kernel
+Skip upgrading the kernel.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-a, \-\-ask
+Pass \-\-ask to emerge.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-c, \-\-config <config>
+Override configuration file path.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-d, \-\-debug
+Enable debug logging.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-e, \-\-exclude <ATOM>
+Atom to exclude from the @world update.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-v, \-\-verbose
+Pass \-\-verbose to emerge.
+.UNINDENT
+.SS ecleans
+.sp
+Remove build leftovers, unused packages, and stale distfiles.
+.nf
+\- Delete the contents of \fB${PORTAGE_TMPDIR}/portage\fP and any configured extra directories
+\- \fBemerge \-\-depclean \-\-quiet\fP
+\- \fBemerge \-\-quiet @preserved\-rebuild\fP
+\- \fBrevdep\-rebuild \-\-quiet\fP
+\- \fBeclean\-dist \-\-deep\fP
+\- \fBeclean\-pkg \-\-deep\fP
+\- \fBemaint \-\-fix all\fP
+\- Delete zero\-length files under \fBPKGDIR\fP
+.fi
+.sp
+.sp
+Usage
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+upkeep ecleans [OPTIONS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Options
+.INDENT 0.0
+.TP
+.B \-c, \-\-config <config>
+Override configuration file path.
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \-d, \-\-debug
+Enable debug logging.
+.UNINDENT
+.SS emerges
+.sp
+Update Portage, \fB@world\fP, and the kernel.
+.nf
+\- \fBemerge \-\-oneshot \-\-quiet \-\-update portage\fP
+\- \fBemerge \-\-keep\-going \-\-tree \-\-quiet \-\-update \-\-deep \-\-newuse \-\-with\-bdeps=y @world\fP
+\- \fBemerge \-\-usepkg=n \-\-keep\-going \-\-quiet @live\-rebuild\fP
+\- \fBemerge \-\-usepkg=n \-\-keep\-going \-\-quiet @preserved\-rebuild\fP
+\- \fBsystemctl daemon\-reexec\fP if applicable
+\- upgrade kernel
+.fi
+.sp
+.sp
+Anything listed under \fBextra_args\fP in the \fB[emerge]\fP table of the configuration file is
+appended to the \fB@world\fP update.
+.sp
+Usage
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+upkeep emerges [OPTIONS]
 .EE
 .UNINDENT
 .UNINDENT
@@ -146,21 +227,39 @@ Override configuration file path.
 .UNINDENT
 .INDENT 0.0
 .TP
+.B \-d, \-\-debug
+Enable debug logging.
+.UNINDENT
+.INDENT 0.0
+.TP
 .B \-e, \-\-exclude <ATOM>
+Atom to exclude from the @world update.
 .UNINDENT
 .INDENT 0.0
 .TP
 .B \-v, \-\-verbose
-Pass \-\-verbose to emerge and enable logging.
+Pass \-\-verbose to emerge.
 .UNINDENT
-.SH REBUILD-KERNEL
+.SS rebuild\-kernel
+.sp
+Rebuild the kernel currently selected in \fB/usr/src/linux\fP\&.
+.sp
+Runs the build steps without touching the \fBeselect kernel\fP selection:
+.nf
+\- \fBmake oldconfig\fP, seeding \fB\&.config\fP from \fB/proc/config.gz\fP if needed
+\- \fBmake\fP
+\- \fBmake modules_install\fP
+\- \fBemerge \-\-keep\-going @module\-rebuild @x11\-module\-rebuild\fP
+\- \fBmake install\fP
+.fi
+.sp
 .sp
 Usage
 .INDENT 0.0
 .INDENT 3.5
 .sp
 .EX
-rebuild\-kernel [OPTIONS]
+upkeep rebuild\-kernel [OPTIONS]
 .EE
 .UNINDENT
 .UNINDENT
@@ -176,14 +275,28 @@ Enable debug logging.
 .B \-j, \-\-number\-of\-jobs <number_of_jobs>
 Number of tasks to run simultaneously.
 .UNINDENT
-.SH UPGRADE-KERNEL
+.SS upgrade\-kernel
+.sp
+Select the newest kernel and build it.
+.sp
+\fBeselect kernel list\fP sorts its entries by version, so the highest\-numbered entry is the newest
+kernel available. If it is already selected there is nothing to do. Otherwise:
+.nf
+\- \fBeselect kernel set\fP the newest entry
+\- \fBmake oldconfig\fP, seeding \fB\&.config\fP from \fB/proc/config.gz\fP if needed
+\- \fBmake\fP
+\- \fBmake modules_install\fP
+\- \fBemerge \-\-keep\-going @module\-rebuild @x11\-module\-rebuild\fP
+\- \fBmake install\fP
+.fi
+.sp
 .sp
 Usage
 .INDENT 0.0
 .INDENT 3.5
 .sp
 .EX
-upgrade\-kernel [OPTIONS]
+upkeep upgrade\-kernel [OPTIONS]
 .EE
 .UNINDENT
 .UNINDENT

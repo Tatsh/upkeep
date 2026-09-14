@@ -46,6 +46,34 @@ poetry add upkeep
 pip install upkeep
 ```
 
+## Commands
+
+Everything lives under a single `upkeep` command:
+
+| Command                 | Purpose                                                       |
+| ----------------------- | ------------------------------------------------------------- |
+| `upkeep all`            | Sync, update, and clean in one pass.                          |
+| `upkeep emerges`        | Update Portage, `@world`, and the kernel.                     |
+| `upkeep ecleans`        | Remove build leftovers, unused packages, and stale distfiles. |
+| `upkeep upgrade-kernel` | Select the newest kernel and build it.                        |
+| `upkeep rebuild-kernel` | Rebuild the currently selected kernel.                        |
+
+`-d`/`--debug` enables debug logging and is accepted on either side of the subcommand name, so
+`upkeep -d all` and `upkeep all -d` are equivalent. Pass `--help` to any subcommand to see its
+options.
+
+## all
+
+A single command for a full maintenance pass:
+
+- `emerge --sync`, wrapped by any configured hooks. Skip it with `--no-sync`.
+- Everything `upkeep emerges` does, including the kernel upgrade.
+- Everything `upkeep ecleans` does. Skip it with `--no-clean`.
+
+```shell
+upkeep all --no-sync
+```
+
 ## emerges
 
 This command will do the following:
@@ -66,27 +94,55 @@ There are flags to disable most parts of this functionality, such as
 Older versions of this tool supported various ways to update the kernel to boot from. However this
 is better left to the configuration and hooks of `kernelinstall` which is invoked by `make install`.
 
-The automatic kernel update will only work if there are 2 kernels displayed
-with the command `eselect --brief kernel list`. The first one in the list must
-be the active kernel. The second one is the one to upgrade to. After switching
-to the new kernel, a `.config` must exist in `/usr/src/linux` or the command
-will not run `make`. If the configuration exists at `/proc/config.gz` it will
-be used.
+`eselect kernel list` sorts its entries by version, so the highest-numbered entry is the newest
+kernel available. That entry is selected and built. If it is already selected there is nothing to
+do. After switching to the new kernel, a `.config` must exist in `/usr/src/linux` or the command
+will not run `make`. If the configuration exists at `/proc/config.gz` it will be used.
 
-If `emerges` fails to build the kernel because of the state of
+If `upkeep emerges` fails to build the kernel because of the state of
 `eselect kernel list`, you can fix it and re-run the update by running
-`upgrade-kernel`.
+`upkeep upgrade-kernel`.
 
 The old kernel data in `/boot` will be stored in `/root/.upkeep/old-kernels`.
 
-If you want to only rebuild the kernel, run `rebuild-kernel`.
+If you want to only rebuild the kernel, run `upkeep rebuild-kernel`.
+
+## Configuration
+
+All commands read `/etc/upkeeprc` (override with `--config`). It is TOML and every table is
+optional.
+
+```toml
+[emerge]
+# Appended to the @world update.
+extra_args = ['--backtrack=1000', '--keep-going', '--usepkg=n']
+
+[ecleans]
+# ${PORTAGE_TMPDIR}/portage is always purged and does not need to be listed.
+extra_purge_dirs = ['/home/portage']
+
+[sync]
+post = ["git -C /root/overlay remote set-url origin git@github.com:user/overlay"]
+pre = ['/usr/local/sbin/prepare-ssh-agent']
+```
+
+Sync hook entries are split with `shlex.split` and run directly, without a shell. They cannot
+change the environment of the `upkeep` process itself, so anything that must export a variable
+(an `ssh-agent` socket, for example) belongs in a wrapper script that sets the variable and then
+runs `upkeep all`. The variables listed in `upkeep.constants.SPECIAL_ENV` — including
+`SSH_AUTH_SOCK`, `FEATURES`, `MAKEOPTS`, and `USE` — are passed through from that environment, so
+`FEATURES=-getbinpkg upkeep all` works as expected.
 
 ## ecleans
 
 This command will run the following commands (or equivalents):
 
+- Delete the contents of `${PORTAGE_TMPDIR}/portage` (queried from `portageq`, so it follows
+  wherever you have actually pointed `PORTAGE_TMPDIR`) and any `extra_purge_dirs`
 - `emerge --depclean`
 - `emerge @preserved-rebuild`
 - `revdep-rebuild`
 - `eclean-dist --deep`
-- `rm -fR /var/tmp/portage/*`
+- `eclean-pkg --deep`
+- `emaint --fix all`
+- Delete zero-length files under `PKGDIR`
