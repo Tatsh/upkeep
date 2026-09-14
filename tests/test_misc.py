@@ -3,9 +3,10 @@ from __future__ import annotations
 from inspect import isfunction
 
 from click.testing import CliRunner
+import click
+
 from upkeep.commands.kernel import kernel_command
 from upkeep.decorators import umask
-import click
 
 
 def test_umask_with_function() -> None:

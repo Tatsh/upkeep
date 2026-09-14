@@ -2,11 +2,12 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+import pytest
+
 from upkeep.commands.kernel import kernel_command
 from upkeep.constants import CONFIG_GZ
 from upkeep.exceptions import KernelError
 from upkeep.utils.kernel import rebuild_kernel
-import pytest
 
 if TYPE_CHECKING:
     from click.testing import CliRunner
