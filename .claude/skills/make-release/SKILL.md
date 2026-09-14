@@ -28,7 +28,7 @@ with the changelog.
    opens a series the table does not already list, replace the stale entry with the new one (a
    `0.5.1` release is covered by `0.5.x`); a patch inside a series already listed does not need a
    change.
-   State which series you dropped, since dropping one ends its support.
+   Record which series you dropped. Dropping one ends its support.
 
 1. **Launch agents in parallel** before bumping:
    - **copy-editor** - to fix prose in the changelog entries.

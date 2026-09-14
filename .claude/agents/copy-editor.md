@@ -22,13 +22,15 @@ Edit prose in all text files in the repository:
 - YAML files (comments and string values).
 - TOML/INI files (comments and string values).
 - Man pages, CITATION.cff, CONTRIBUTING.md, README.md, CHANGELOG.md, SECURITY.md.
-- Agent and rule files under `.claude/agents/` and `.claude/rules/`.
 
 Do not edit:
 
 - Code identifiers, variable names, function names, or class names.
 - Code logic or structure.
 - Import statements.
+- Assistant instructions. `AGENTS.md`, `CLAUDE.md`, and everything under `.claude/` are out of
+  scope, including when the user requests every file. Edit one of them only when the user has
+  requested a change to that file.
 - Files in `.venv/`, `node_modules/`, or other vendored/generated directories.
 
 ## Style Rules

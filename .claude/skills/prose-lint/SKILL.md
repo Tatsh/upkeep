@@ -29,6 +29,10 @@ Audit every piece of prose inside each target file:
 Do not edit:
 
 - Identifiers, code, URLs, file paths, and dependency names.
+- Assistant instructions. `AGENTS.md`, `CLAUDE.md`, and everything under `.claude/` are out of
+  scope, including when the user requests every file (`everywhere`, `the whole repository`, a
+  glob that covers them). Report a hit in one of them only when the user has requested a change to
+  that file.
 - Fenced blocks and italic examples inside `.claude/rules/prose.md`. They exist to demonstrate
   violations.
 - Released `CHANGELOG.md` sections. Only the `Unreleased` section is in scope.
@@ -49,15 +53,15 @@ grep -nEi "[[:alpha:]]+n[’']t\b|[[:alpha:]]+[’'](re|ll|ve|m)\b|\b(it|that|th
 ```
 
 ```shell
-grep -nEiw "gate|gates|gated|gating|stamp|stamps|stamped|stamping|answer|answers|answered|answering|say|says|said|saying|spell|spells|spelled|spelling|contain|contains|contained|containing|carry|carries|carried|carrying|hold|holds|held|holding|keep|keeps|kept|keeping|reach|reaches|reached|reaching|name|names|named|naming|lay|lays|laid|laying|leave|leaves|left|leaving|confine|confines|confined|confining|manufacture|manufactures|manufactured|manufacturing|claim|claims|claimed|claiming|ask|asks|asked|asking|transport|transports|transported|transporting" <files>
+grep -nEiw "gate|gates|gated|gating|stamp|stamps|stamped|stamping|answer|answers|answered|answering|say|says|said|saying|spell|spells|spelled|spelling|state|states|stated|stating|contain|contains|contained|containing|carry|carries|carried|carrying|hold|holds|held|holding|keep|keeps|kept|keeping|reach|reaches|reached|reaching|name|names|named|naming|lay|lays|laid|laying|leave|leaves|left|leaving|confine|confines|confined|confining|manufacture|manufactures|manufactured|manufacturing|mint|mints|minted|minting|claim|claims|claimed|claiming|ask|asks|asked|asking|transport|transports|transported|transporting" <files>
 ```
 
 ```shell
-grep -nEi "\banyway\b|\banyone\b|\bnobody\b|\bno[ -]?one\b|\bobligatory\b|ground truth|elephant in the room|writing on the wall|beat around the bush|call it a day|cut to the chase|hit the nail on the head|jump on the bandwagon|think outside the box" <files>
+grep -nEi "\banyway\b|\banyone\b|\bnobody\b|\bno[ -]?one\b|\bobligatory\b|ground truth|house style|house convention|elephant in the room|writing on the wall|beat around the bush|call it a day|cut to the chase|hit the nail on the head|jump on the bandwagon|think outside the box" <files>
 ```
 
 ```shell
-grep -nEi ", (which|so|since|because)\b|says nothing|say nothing|for such|left alone|written by hand|that matters is|\b[[:alpha:]]+s no\b|\bstate[sd]\b|\bsomething\b|of (its|their|his|her) own|their own" <files>
+grep -nEi ", (which|so|since|because)\b|says nothing|say nothing|for such|left alone|written by hand|that matters is|\b[[:alpha:]]+s no\b|\bstate[sd]\b|\bsomething\b|\bnothing\b|of (its|their|his|her) own|their own" <files>
 ```
 
 Headings and titles need a separate pass:
