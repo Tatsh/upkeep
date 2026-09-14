@@ -1,6 +1,6 @@
 ---
 name: copy-editor
-description: Fixes prose style, grammar, spelling, and punctuation in comments, docstrings, and user-facing string literals. Applies every rule in `.claude/rules/prose.md`. Touches no code logic or identifiers. Use for documentation polish passes.
+description: Fixes prose style, grammar, spelling, and punctuation in comments, docstrings, and user-facing string literals. Applies every rule in `.claude/rules/prose.md`. Does not modify code logic or identifiers. Use for documentation polish passes.
 ---
 
 # Copy Editor Agent
@@ -75,7 +75,7 @@ violation is rewritten even when the sentence reads well.
 
 ### Abbreviations and acronyms
 
-- Write every acronym in full uppercase, whether a reader pronounces it as a word or spells it out
+- Write every acronym in full uppercase, whether a reader pronounces it as a word or reads it out
   letter by letter, such as ASCII, NASA, NATO, UNESCO, HTML, CSS, URL, API, CLI, JSON, YAML, SSH,
   and HTTP.
 - An entity whose common usage differs takes its own form, such as Ofcom for the UK regulator

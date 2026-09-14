@@ -37,7 +37,8 @@ Do not edit:
 ## Detection
 
 Run the greps below over the target files, then review every hit by hand. Each grep over-matches by
-design; a noun spelled like a banned verb is valid, and the fix depends on the sentence.
+design; a noun matching a banned verb is valid, and the fix depends on the sentence. _claim_ is
+valid wherever a specification defines it as a term, such as an OIDC or JWT claim.
 
 ```shell
 grep -nP '\x{2013}|\x{2014}' <files>
@@ -48,7 +49,7 @@ grep -nEi "[[:alpha:]]+n[’']t\b|[[:alpha:]]+[’'](re|ll|ve|m)\b|\b(it|that|th
 ```
 
 ```shell
-grep -nEiw "gate|gates|gated|gating|stamp|stamps|stamped|stamping|answer|answers|answered|answering|say|says|said|saying|contain|contains|contained|containing|carry|carries|carried|carrying|hold|holds|held|holding|keep|keeps|kept|keeping|reach|reaches|reached|reaching|name|names|named|naming|lay|lays|laid|laying|leave|leaves|left|leaving|confine|confines|confined|confining|manufacture|manufactures|manufactured|manufacturing|claim|claims|claimed|claiming|ask|asks|asked|asking|transport|transports|transported|transporting" <files>
+grep -nEiw "gate|gates|gated|gating|stamp|stamps|stamped|stamping|answer|answers|answered|answering|say|says|said|saying|spell|spells|spelled|spelling|contain|contains|contained|containing|carry|carries|carried|carrying|hold|holds|held|holding|keep|keeps|kept|keeping|reach|reaches|reached|reaching|name|names|named|naming|lay|lays|laid|laying|leave|leaves|left|leaving|confine|confines|confined|confining|manufacture|manufactures|manufactured|manufacturing|claim|claims|claimed|claiming|ask|asks|asked|asking|transport|transports|transported|transporting" <files>
 ```
 
 ```shell
@@ -56,7 +57,7 @@ grep -nEi "\banyway\b|\banyone\b|\bnobody\b|\bno[ -]?one\b|\bobligatory\b|ground
 ```
 
 ```shell
-grep -nEi ", (which|so|since|because)\b|says nothing|say nothing|for such|left alone|written by hand|that matters is|\bsomething\b|of (its|their|his|her) own|their own" <files>
+grep -nEi ", (which|so|since|because)\b|says nothing|say nothing|for such|left alone|written by hand|that matters is|\b[[:alpha:]]+s no\b|\bstate[sd]\b|\bsomething\b|of (its|their|his|her) own|their own" <files>
 ```
 
 Headings and titles need a separate pass:

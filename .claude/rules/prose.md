@@ -27,7 +27,7 @@ Examples of banned writing appear in italics or inside a fenced block. Linting m
 
 ## Acronyms and abbreviations
 
-- Write an acronym in full uppercase, whether a reader pronounces it as a word or spells it out
+- Write an acronym in full uppercase, whether a reader pronounces it as a word or reads it out
   letter by letter. _ASCII_, _NASA_, _NATO_, _UNESCO_, _HTML_, _URL_, and _JSON_ all take the same
   treatment.
 - An entity whose common usage differs takes its own form. _Ofcom_ is the UK regulator, and _OFCOM_
@@ -40,7 +40,8 @@ Examples of banned writing appear in italics or inside a fenced block. Linting m
 
 Every inflection of each verb below is banned (_says_, _said_, _saying_, _keeps_, _kept_, and so
 on). A noun or adjective of the same spelling is allowed. _The name of the file_ and _a rubber
-stamp_ are both fine.
+stamp_ are both fine. _spell-check_ is allowed in every form and position. _claim_ is allowed
+wherever a specification defines it as a term, such as an OIDC or JWT claim.
 
 | Banned        | Write instead                       |
 | ------------- | ----------------------------------- |
@@ -59,6 +60,7 @@ stamp_ are both fine.
 | _name_        | _identify, specify, list, title_    |
 | _reach_       | _arrive at, contact_                |
 | _say_         | _state, write, document, report_    |
+| _spell_       | _write, writes, reads_              |
 | _stamp_       | _mark, write, record_               |
 | _transport_   | _move, ship, deliver_               |
 
@@ -81,19 +83,21 @@ stamp_ are both fine.
 
 ## Banned phraseology
 
-| Banned pattern                                                                     | Fix                                                        |
-| ---------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| _they say nothing about X_, _it says nothing about X_, _that says nothing about X_ | State what is absent, or delete the sentence.              |
-| _..., which (second statement)_                                                    | Split into two sentences.                                  |
-| _..., so (second statement)_ and _..., so that ..._                                | Split into two sentences.                                  |
-| _..., since (second statement)_                                                    | Split into two sentences.                                  |
-| _for such_                                                                         | Rewrite with the concrete noun.                            |
-| _left alone_                                                                       | State the concrete action, for example _no edit was made_. |
-| _written by hand_                                                                  | _hand-written_                                             |
-| _(number) things worth (verb):_                                                    | Delete the preamble and give the items.                    |
-| _... that matters is ..._                                                          | State the item directly.                                   |
-| _, because (vague justification)_ at the end                                       | Delete the clause.                                         |
-| _either_ at the end of a sentence                                                  | Delete the word, or restructure the sentence.              |
+| Banned pattern                                                                     | Fix                                                                      |
+| ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| _they say nothing about X_, _it says nothing about X_, _that says nothing about X_ | State what is absent, or delete the sentence.                            |
+| _X verbs no Y_, such as _the pass touches no files_                                | Rewrite as _X does not verb Y_, such as _the pass does not touch files_. |
+| _X states that Y_ and _X states Y_, such as _the rule states that tests pass_      | Rewrite as _X requires that Y_, or as _X requires Y_.                    |
+| _..., which (second statement)_                                                    | Split into two sentences.                                                |
+| _..., so (second statement)_ and _..., so that ..._                                | Split into two sentences.                                                |
+| _..., since (second statement)_                                                    | Split into two sentences.                                                |
+| _for such_                                                                         | Rewrite with the concrete noun.                                          |
+| _left alone_                                                                       | State the concrete action, for example _no edit was made_.               |
+| _written by hand_                                                                  | _hand-written_                                                           |
+| _(number) things worth (verb):_                                                    | Delete the preamble and give the items.                                  |
+| _... that matters is ..._                                                          | State the item directly.                                                 |
+| _, because (vague justification)_ at the end                                       | Delete the clause.                                                       |
+| _either_ at the end of a sentence                                                  | Delete the word, or restructure the sentence.                            |
 
 ## Specificity
 
