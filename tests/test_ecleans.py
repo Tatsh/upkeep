@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from pytest_mock import MockFixture
+    import pytest
 
     from .utils import SubprocessMocker
 
@@ -72,6 +73,26 @@ def test_ecleans_purges_extra_dirs(sp_mocker: SubprocessMocker, mocker: MockFixt
     mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
     assert CliRunner().invoke(ecleans).exit_code == 0
     assert f'rm -fR {leftover}' in sp_mocker.history
+
+
+def test_ecleans_skips_relative_purge_dir(sp_mocker: SubprocessMocker, mocker: MockFixture,
+                                          monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    build_dir, _ = _setup_dirs(mocker, tmp_path)
+    leftover = build_dir / 'cat-pkg-1.0'
+    leftover.mkdir()
+    (tmp_path / 'relative' / 'junk').mkdir(parents=True)
+    monkeypatch.chdir(tmp_path)
+    mocker.patch('upkeep.commands.ecleans.load_config',
+                 return_value={'ecleans': {
+                     'extra_purge_dirs': ['relative']
+                 }})
+    for command in ECLEANS_COMMANDS:
+        sp_mocker.add_output4(command, check=True)
+    sp_mocker.add_output4(('rm', '-fR', str(leftover)), check=True)
+    mocker.patch('upkeep.utils.misc.sp.run', new=sp_mocker.get_output)
+    assert CliRunner().invoke(ecleans).exit_code == 0
+    assert f'rm -fR {leftover}' in sp_mocker.history
+    assert all('relative/junk' not in command for command in sp_mocker.history)
 
 
 def test_ecleans_purges_empty_binary_packages(sp_mocker: SubprocessMocker, mocker: MockFixture,

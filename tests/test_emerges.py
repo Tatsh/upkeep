@@ -7,6 +7,7 @@ import sys
 from click.testing import CliRunner
 
 from upkeep.commands import emerges_command as emerges
+from upkeep.exceptions import ConfigError
 
 if TYPE_CHECKING:
     from pytest_mock import MockFixture
@@ -126,3 +127,22 @@ def test_emerges_exclude(mocker: MockFixture, runner: CliRunner) -> None:
     world_command = command_runner.check_call.call_args_list[1].args[0]
     assert '--exclude=cat/pkg' in world_command
     assert '--exclude=c' not in world_command
+
+
+def test_emerges_extra_args(mocker: MockFixture, runner: CliRunner) -> None:
+    command_runner = mocker.patch('upkeep.commands.emerges.CommandRunner')
+    mocker.patch('upkeep.commands.emerges.upgrade_kernel')
+    mocker.patch('upkeep.commands.emerges.load_config',
+                 return_value={'emerge': {
+                     'extra_args': ['--backtrack=1000']
+                 }})
+    result = runner.invoke(emerges, ('--no-upgrade-kernel',))
+    assert result.exit_code == 0
+    assert '--backtrack=1000' in command_runner.check_call.call_args_list[1].args[0]
+
+
+def test_emerges_bad_config(mocker: MockFixture, runner: CliRunner) -> None:
+    command_runner = mocker.patch('upkeep.commands.emerges.CommandRunner')
+    mocker.patch('upkeep.commands.emerges.load_config', side_effect=ConfigError('/etc/upkeeprc'))
+    assert runner.invoke(emerges).exit_code != 0
+    assert command_runner.check_call.call_count == 0
