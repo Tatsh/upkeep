@@ -5,6 +5,8 @@ local utils = import 'utils.libjsonnet';
   description: 'Portage update helper commands.',
   keywords: ['administration', 'command line', 'gentoo'],
   project_name: 'upkeep',
+  // levenshtein 0.27.5 requires Python 3.11.
+  supported_python_versions: ['3.11', '3.12', '3.13', '3.14'],
   version: '1.7.1',
   want_main: true,
   want_appimage: false,
@@ -19,6 +21,9 @@ local utils = import 'utils.libjsonnet';
     },
   },
   security_policy_supported_versions: { '1.7.x': ':white_check_mark:' },
+  citation+: {
+    'date-released': '2026-09-14',
+  },
   pyproject+: {
     tool+: {
       poetry+: {

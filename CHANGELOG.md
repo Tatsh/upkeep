@@ -49,6 +49,7 @@ and this project adheres to
 - `TooManyLinesFromEselect` exception and the `MINIMUM_ESELECT_LINES` constant.
 - `DISABLE_GETBINPKG_ENV_DICT` constant. It was never referenced; set `FEATURES=-getbinpkg` in the
   environment instead, which `minenv()` passes through.
+- Support for Python 3.10. Python 3.11 or later is now required.
 
 ## [1.7.1] - 2026-05-02
 

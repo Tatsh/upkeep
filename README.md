@@ -122,7 +122,7 @@ extra_args = ['--backtrack=1000', '--keep-going', '--usepkg=n']
 extra_purge_dirs = ['/home/portage']
 
 [sync]
-post = ["git -C /root/overlay remote set-url origin git@github.com:user/overlay"]
+post = ['git -C /root/overlay remote set-url origin git@github.com:user/overlay']
 pre = ['/usr/local/sbin/prepare-ssh-agent']
 ```
 

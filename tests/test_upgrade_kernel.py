@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from multiprocessing import cpu_count
 from subprocess import CalledProcessError
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Any, Self, TypeVar
 import subprocess as sp
 
-from typing_extensions import Self, override
+from typing_extensions import override
 import pytest
 
 from upkeep.commands import emerges_command as emerges
