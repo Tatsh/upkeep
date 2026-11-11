@@ -71,6 +71,7 @@ def rebuild_kernel(num_cpus: int | None = None) -> None:
     if not dot_config_exists and Path(CONFIG_GZ).is_file():
         with gzip.open(CONFIG_GZ) as gz:
             Path('.config').write_bytes(gz.read())
+        dot_config_exists = Path('.config').is_file()
     if not dot_config_exists:
         raise KernelConfigMissing
     logger.info('Running: make oldconfig')
