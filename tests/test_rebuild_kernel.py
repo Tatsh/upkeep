@@ -44,3 +44,20 @@ def test_kernel_command_raises_abort(mocker: MockerFixture, runner: CliRunner) -
 
     res = runner.invoke(kernel_command('test-kernel', raise_))
     assert res.return_value != 0
+
+
+def test_rebuild_kernel_seeds_config_from_gz(mocker: MockerFixture, tmp_path) -> None:
+    import gzip
+    import os as _os
+
+    config_gz = tmp_path / 'config.gz'
+    with gzip.open(config_gz, 'wb') as gz:
+        gz.write(b'CONFIG_SEEDED=y\n')
+    build_dir = tmp_path / 'linux'
+    build_dir.mkdir()
+    mocker.patch('upkeep.utils.kernel.CONFIG_GZ', str(config_gz))
+    mocker.patch('upkeep.utils.kernel.chdir', lambda _d: _os.chdir(str(build_dir)))
+    mocker.patch('upkeep.utils.kernel.CommandRunner.check_call')
+    mocker.patch('upkeep.utils.kernel.CommandRunner.suppress_output')
+    rebuild_kernel(1)
+    assert (build_dir / '.config').read_bytes() == b'CONFIG_SEEDED=y\n'
